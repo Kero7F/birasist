@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+}
+
+enum TransactionType {
+  EARN
+  WITHDRAW
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+enum SaleStatus {
+  SUCCESS
+  CANCELLED
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  tc_no         String   @unique
+  first_name    String
+  last_name     String
+  phone         String
+  email         String   @unique
+  password_hash String
+  role          UserRole
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  wallet    Wallet?
+  sales     Sale[]
+  customers Customer[]
+}
+
+model Customer {
+  id         String   @id @default(uuid()) @db.Uuid
+  agent_id   String   @db.Uuid
+  full_name  String
+  tc_no      String
+  phone      String
+  created_at DateTime @default(now())
+
+  agent    User     @relation(fields: [agent_id], references: [id])
+  vehicles Vehicle[]
+
+  @@unique([agent_id, tc_no])
+}
+
+model Vehicle {
+  id              String   @id @default(uuid()) @db.Uuid
+  customer_id     String   @db.Uuid
+  plate_number    String
+  document_serial String?
+  brand           String
+  model           String
+  year            Int
+  usage_type      String
+  created_at      DateTime @default(now())
+
+  customer Customer @relation(fields: [customer_id], references: [id])
+}
+
+model Wallet {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @unique @db.Uuid
+  balance    Float    @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user         User          @relation(fields: [user_id], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id             String            @id @default(uuid()) @db.Uuid
+  wallet_id      String            @db.Uuid
+  type           TransactionType
+  amount         Float
+  status         TransactionStatus
+  description    String
+  balance_before Float?
+  balance_after  Float?
+  created_at     DateTime         @default(now())
+
+  wallet Wallet @relation(fields: [wallet_id], references: [id])
+}
+
+model Package {
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String
+  limits_description String
+  base_price         Float
+  commission_amount  Float
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+
+  totalLimit        String
+  breakdownLimit    String
+  accidentLimit     String
+  towingLimit       String
+  replacementCar    String?
+  serviceType       String   @default("EN YAKIN TAMİRHANE")
+  ageLimit          String   @default("Yaş sınırı yoktur")
+  compatibleVehicles String
+
+  sales Sale[]
+}
+
+model Sale {
+  id                  String     @id @default(uuid()) @db.Uuid
+  agent_id            String     @db.Uuid
+  package_id          String     @db.Uuid
+  customer_tc         String
+  customer_first_name String
+  customer_last_name  String
+  customer_plate      String
+  car_brand_model     String
+  sale_price          Float
+  commission_earned   Float
+  status              SaleStatus
+  created_at          DateTime @default(now())
+
+  /// Sözleşme / Poliçe numarası
+  policyNumber        String   @unique @default(cuid())
+
+  agent   User    @relation(fields: [agent_id], references: [id])
+  package Package @relation(fields: [package_id], references: [id])
+}
+

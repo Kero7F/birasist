@@ -1,0 +1,676 @@
+"use client";
+
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useFormState } from "react-dom";
+import { useRouter } from "next/navigation";
+import {
+  CAR_BRANDS,
+  VEHICLE_USAGE_TYPES,
+  YEARS
+} from "@/lib/data/vehicles";
+import {
+  NameInput,
+  TcInput,
+  PhoneInput
+} from "@/components/ui/SmartInputs";
+import {
+  checkCustomerByTc,
+  checkVehicleByPlate,
+  type CheckCustomerState,
+  type CheckVehicleState
+} from "../actions";
+import { checkoutPolicy } from "../actions";
+
+type CustomerOption = {
+  id: string;
+  full_name: string;
+  tc_no: string;
+  phone: string;
+};
+
+type PackageOption = {
+  id: string;
+  name: string;
+  limits_description: string;
+  base_price: number;
+  commission_amount: number;
+};
+
+type SalesWizardProps = {
+  customers: CustomerOption[];
+  packages: PackageOption[];
+};
+
+type Step = 1 | 2 | 3 | 4;
+
+const brandKeys = Object.keys(CAR_BRANDS);
+
+export function SalesWizard({ customers, packages }: SalesWizardProps) {
+  const [step, setStep] = useState<Step>(1);
+  const router = useRouter();
+
+  const [tcNo, setTcNo] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [district, setDistrict] = useState<string>("");
+  const [isNewCustomer, setIsNewCustomer] = useState<boolean>(true);
+
+  const [plateNumber, setPlateNumber] = useState<string>("");
+  const [brand, setBrand] = useState<string>("");
+  const [model, setModel] = useState<string>("");
+  const [year, setYear] = useState<string>("");
+  const [usageType, setUsageType] = useState<string>("");
+  const [isNewVehicle, setIsNewVehicle] = useState<boolean>(true);
+
+  const [selectedPackageId, setSelectedPackageId] = useState<string>("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, startTransition] = useTransition();
+
+  const [customerCheckState, customerCheckAction] = useFormState<
+    CheckCustomerState,
+    FormData
+  >(checkCustomerByTc, { checked: false, found: false });
+
+  const [vehicleCheckState, vehicleCheckAction] = useFormState<
+    CheckVehicleState,
+    FormData
+  >(checkVehicleByPlate, { checked: false, found: false });
+
+  useEffect(() => {
+    if (!customerCheckState.checked) return;
+
+    if (customerCheckState.found) {
+      setFirstName(customerCheckState.firstName ?? "");
+      setLastName(customerCheckState.lastName ?? "");
+      setPhone(customerCheckState.phone ?? "");
+      setIsNewCustomer(false);
+    } else {
+      setIsNewCustomer(true);
+    }
+  }, [customerCheckState]);
+
+  useEffect(() => {
+    if (!vehicleCheckState.checked) return;
+
+    if (vehicleCheckState.found) {
+      setPlateNumber(vehicleCheckState.plateNumber ?? plateNumber);
+      setBrand(vehicleCheckState.brand ?? "");
+      setModel(vehicleCheckState.model ?? "");
+      setYear(
+        vehicleCheckState.year != null
+          ? String(vehicleCheckState.year)
+          : year
+      );
+      setUsageType(vehicleCheckState.usageType ?? "");
+      setIsNewVehicle(false);
+    } else {
+      setIsNewVehicle(true);
+    }
+  }, [vehicleCheckState, plateNumber, year]);
+
+  const modelsForBrand = useMemo(() => {
+    if (!brand || !CAR_BRANDS[brand]) return [] as string[];
+    return CAR_BRANDS[brand];
+  }, [brand]);
+
+  const handleTcChange = (value: string) => {
+    setTcNo(value);
+
+    if (value.length === 11) {
+      const fd = new FormData();
+      fd.set("tc", value);
+      customerCheckAction(fd);
+    }
+  };
+
+  const handlePlateChange = (value: string) => {
+    const upper = value.toUpperCase();
+    setPlateNumber(upper);
+
+    if (upper.replace(/\s/g, "").length >= 5) {
+      const fd = new FormData();
+      fd.set("plate", upper);
+      vehicleCheckAction(fd);
+    }
+  };
+
+  const canGoNext = (): boolean => {
+    if (step === 1) {
+      return (
+        tcNo.length === 11 &&
+        firstName.trim().length > 0 &&
+        phone.trim().length > 0
+      );
+    }
+    if (step === 2) {
+      return (
+        plateNumber.trim().length > 0 &&
+        brand.trim().length > 0 &&
+        model.trim().length > 0 &&
+        year.trim().length > 0 &&
+        usageType.trim().length > 0
+      );
+    }
+    if (step === 3) {
+      return selectedPackageId.length > 0;
+    }
+    return true;
+  };
+
+  const goNext = () => {
+    if (!canGoNext()) return;
+    setStep((prev) => (prev < 4 ? ((prev + 1) as Step) : prev));
+  };
+
+  const goBack = () => {
+    setStep((prev) => (prev > 1 ? ((prev - 1) as Step) : prev));
+  };
+
+  const handleCheckout = () => {
+    setSubmitError(null);
+    const payload = {
+      customer: {
+        tcNo,
+        firstName,
+        lastName,
+        phone,
+        city,
+        district,
+        isNewCustomer
+      },
+      vehicle: {
+        plateNumber,
+        brand,
+        model,
+        year,
+        usageType,
+        isNewVehicle
+      },
+      selectedPackage: packages.find((p) => p.id === selectedPackageId) ?? null
+    };
+
+    startTransition(async () => {
+      try {
+        await checkoutPolicy(payload);
+        alert("Poliçe başarıyla kesildi!");
+        router.push("/dashboard/policeler");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "İşlem sırasında beklenmeyen bir hata oluştu.";
+        setSubmitError(message);
+        alert(message);
+      }
+    });
+  };
+
+  const currentStepLabel = (current: Step) => {
+    switch (current) {
+      case 1:
+        return "Müşteri Bilgileri";
+      case 2:
+        return "Araç Bilgileri";
+      case 3:
+        return "Paket Seçimi";
+      case 4:
+        return "Özet & Onay";
+      default:
+        return "";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm">
+        <div className="flex flex-1 items-center gap-3">
+          {[1, 2, 3, 4].map((s) => {
+            const index = s as Step;
+            const isActive = step === index;
+            const isCompleted = step > index;
+
+            return (
+              <div
+                key={index}
+                className="flex flex-1 items-center gap-2 last:flex-none"
+              >
+                <div
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
+                    isActive
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : isCompleted
+                        ? "border-emerald-500 bg-emerald-500 text-emerald-950"
+                        : "border-border bg-background text-muted-foreground"
+                  }`}
+                >
+                  {index}
+                </div>
+                <span
+                  className={`hidden text-xs font-medium md:inline ${
+                    isActive
+                      ? "text-foreground"
+                      : isCompleted
+                        ? "text-emerald-500"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {currentStepLabel(index)}
+                </span>
+                {index < 4 && (
+                  <div className="hidden flex-1 border-t border-dashed border-border md:block" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <span className="ml-4 hidden text-xs text-muted-foreground md:inline">
+          Adım {step} / 4
+        </span>
+      </div>
+
+      {step === 1 && (
+        <section className="rounded-lg border border-border bg-card p-4 space-y-4 dark:bg-card">
+          <h2 className="text-sm font-semibold text-foreground">
+            1. Müşteri Bilgileri
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-tc"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                TC Kimlik No
+              </label>
+              <TcInput
+                id="wizard-tc"
+                name="wizard-tc"
+                value={tcNo}
+                onChange={(val) => handleTcChange(val)}
+                placeholder="11 haneli TC no"
+              />
+              {customerCheckState.error && (
+                <p className="text-xs text-red-400">
+                  {customerCheckState.error}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-phone"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Telefon
+              </label>
+              <PhoneInput
+                id="wizard-phone"
+                name="wizard-phone"
+                value={phone}
+                onChange={(val) => setPhone(val)}
+                placeholder="+90 (5XX) XXX XX XX"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-firstName"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Ad
+              </label>
+              <NameInput
+                id="wizard-firstName"
+                name="wizard-firstName"
+                value={firstName}
+                onChange={(val) => setFirstName(val)}
+                placeholder="Ad"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-lastName"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Soyad
+              </label>
+              <NameInput
+                id="wizard-lastName"
+                name="wizard-lastName"
+                value={lastName}
+                onChange={(val) => setLastName(val)}
+                placeholder="Soyad"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-city"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                İl
+              </label>
+              <input
+                id="wizard-city"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                placeholder="Örn. İstanbul"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-district"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                İlçe
+              </label>
+              <input
+                id="wizard-district"
+                type="text"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                placeholder="Örn. Kadıköy"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {step === 2 && (
+        <section className="rounded-lg border border-border bg-card p-4 space-y-4 dark:bg-card">
+          <h2 className="text-sm font-semibold text-foreground">
+            2. Araç Bilgileri
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-plate"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Araç Plakası
+              </label>
+              <input
+                id="wizard-plate"
+                type="text"
+                value={plateNumber}
+                onChange={(e) => handlePlateChange(e.target.value)}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground uppercase outline-none transition focus:ring-2 focus:ring-ring"
+                placeholder="34 ABC 123"
+              />
+              {vehicleCheckState.error && (
+                <p className="text-xs text-red-400">
+                  {vehicleCheckState.error}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-usageType"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Araç Kullanım Türü
+              </label>
+              <select
+                id="wizard-usageType"
+                value={usageType}
+                onChange={(e) => setUsageType(e.target.value)}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Kullanım türü seçin...</option>
+                {VEHICLE_USAGE_TYPES.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-brand"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Araç Markası
+              </label>
+              <select
+                id="wizard-brand"
+                value={brand}
+                onChange={(e) => {
+                  setBrand(e.target.value);
+                  setModel("");
+                }}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Marka seçin...</option>
+                {brandKeys.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-model"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Araç Modeli
+              </label>
+              <select
+                id="wizard-model"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                disabled={!brand}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring disabled:opacity-50"
+              >
+                <option value="">Önce marka seçin...</option>
+                {modelsForBrand.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="wizard-year"
+                className="block text-xs font-medium text-muted-foreground"
+              >
+                Model Yılı
+              </label>
+              <select
+                id="wizard-year"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Yıl seçin...</option>
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {step === 3 && (
+        <section className="rounded-lg border border-border bg-card p-4 space-y-4 dark:bg-card">
+          <h2 className="text-sm font-semibold text-foreground">
+            3. Paket Seçimi
+          </h2>
+          {packages.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Henüz tanımlı paket bulunmamaktadır.
+            </p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {packages.map((pkg) => {
+                const isSelected = selectedPackageId === pkg.id;
+                return (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => setSelectedPackageId(pkg.id)}
+                    className={`flex flex-col items-stretch rounded-lg border px-4 py-3 text-left text-sm transition ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-card hover:border-primary/60"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-foreground">
+                        {pkg.name}
+                      </span>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {pkg.base_price.toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY"
+                        })}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
+                      {pkg.limits_description}
+                    </p>
+                    <p className="mt-1 text-[11px] text-emerald-500">
+                      Komisyon:{" "}
+                      {pkg.commission_amount.toLocaleString("tr-TR", {
+                        style: "currency",
+                        currency: "TRY"
+                      })}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {step === 4 && (
+        <section className="rounded-lg border border-border bg-card p-4 space-y-4 dark:bg-card">
+          <h2 className="text-sm font-semibold text-foreground">
+            4. Özet & Onay
+          </h2>
+          {submitError && (
+            <div className="rounded-md border border-red-500/60 bg-red-950/60 px-3 py-2 text-xs text-red-100">
+              {submitError}
+            </div>
+          )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 text-sm">
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                Müşteri
+              </h3>
+              <p className="text-foreground">
+                {firstName} {lastName}{" "}
+                <span className="text-xs text-muted-foreground">
+                  ({tcNo || "TC yok"})
+                </span>
+              </p>
+              <p className="text-muted-foreground">{phone || "Telefon yok"}</p>
+              {(city || district) && (
+                <p className="text-muted-foreground text-xs">
+                  {city} {district && ` / ${district}`}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2 text-sm">
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                Araç
+              </h3>
+              <p className="text-foreground font-mono">{plateNumber}</p>
+              <p className="text-muted-foreground">
+                {brand} {model && `/ ${model}`} {year && `• ${year}`}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {usageType || "Kullanım türü seçilmedi"}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Seçilen paket
+            </h3>
+            {selectedPackageId ? (
+              (() => {
+                const pkg =
+                  packages.find((p) => p.id === selectedPackageId) ?? null;
+                if (!pkg) return <p className="text-muted-foreground">—</p>;
+                return (
+                  <div className="rounded-md border border-border bg-background px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-foreground">
+                        {pkg.name}
+                      </span>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {pkg.base_price.toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY"
+                        })}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {pkg.limits_description}
+                    </p>
+                  </div>
+                );
+              })()
+            ) : (
+              <p className="text-muted-foreground">
+                Henüz bir paket seçilmedi.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      <div className="flex items-center justify-between pt-2">
+        <button
+          type="button"
+          onClick={goBack}
+          disabled={step === 1}
+          className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Geri
+        </button>
+
+        {step < 4 ? (
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!canGoNext()}
+            className="rounded-md border border-primary bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Devam Et
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCheckout}
+            disabled={isSubmitting}
+            className="rounded-md border border-emerald-500 bg-emerald-500 px-5 py-2 text-sm font-medium text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isSubmitting ? "İşleniyor..." : "Poliçeyi Kes"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+

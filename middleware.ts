@@ -6,8 +6,9 @@ export default auth((req) => {
   const isDashboard =
     req.nextUrl.pathname === "/dashboard" ||
     req.nextUrl.pathname.startsWith("/dashboard/");
+  const isLogin = req.nextUrl.pathname === "/login";
 
-  if (isDashboard && !isLoggedIn) {
+  if (isDashboard && !isLoggedIn && !isLogin) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
@@ -16,14 +17,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, sitemap, etc.
-     * - common static file extensions
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|woff2?)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|login|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|woff2?)$).*)",
   ],
 };

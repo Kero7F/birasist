@@ -52,7 +52,7 @@ export default async function DashboardLayout({
   const navItems = isAdmin ? ADMIN_NAV_ITEMS : AGENT_NAV_ITEMS;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <input
         type="checkbox"
         id="sidebar-toggle"
@@ -60,10 +60,10 @@ export default async function DashboardLayout({
         className="peer sr-only"
       />
       <aside
-        className="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full border-r border-border bg-card transition-transform duration-200 ease-out peer-checked:translate-x-0 lg:relative lg:translate-x-0 lg:shrink-0 dark:bg-card"
+        className="w-64 flex-none border-r border-border bg-background flex flex-col h-full"
         aria-label="Ana menü"
       >
-        <div className="flex h-full flex-col">
+        <div className="flex flex-1 flex-col">
           <div className="flex h-14 items-center justify-between border-b border-border px-4 lg:px-4">
             <span className="font-semibold text-foreground">Acente Panel</span>
             <label
@@ -88,7 +88,7 @@ export default async function DashboardLayout({
               </svg>
             </label>
           </div>
-          <nav className="flex-1 p-2" aria-label="Sayfa navigasyonu">
+          <nav className="flex-1 overflow-y-auto p-2" aria-label="Sayfa navigasyonu">
             <ul className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -174,7 +174,7 @@ export default async function DashboardLayout({
           </label>
           <DashboardHeader logoutAction={logout} />
         </div>
-        <main className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
           {children}
         </main>
       </div>

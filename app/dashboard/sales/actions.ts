@@ -160,6 +160,8 @@ export async function checkoutPolicy(payload: any) {
   const packageId = payload.selectedPackage.id as string;
   const customerInfo = payload.customer ?? {};
   const vehicleInfo = payload.vehicle ?? {};
+  const startDateInput = payload.startDate as string | undefined;
+  const pricingInfo = payload.pricing ?? {};
 
   const tcNo = String(customerInfo.tcNo ?? "").replace(/\D/g, "");
   const firstName = String(customerInfo.firstName ?? "").trim();
@@ -183,12 +185,22 @@ export async function checkoutPolicy(payload: any) {
   }
 
   await prisma.$transaction(async (tx) => {
+    const parsedStart =
+      startDateInput && !Number.isNaN(Date.parse(startDateInput))
+        ? new Date(startDateInput)
+        : new Date();
+    const startDate = parsedStart;
+    const endDate = new Date(startDate);
+    endDate.setFullYear(startDate.getFullYear() + 1);
+
     const pkg = await tx.package.findUnique({
       where: { id: packageId },
       select: {
         id: true,
         base_price: true,
         commission_amount: true,
+        price: true,
+        commission: true,
         name: true
       }
     });
@@ -197,7 +209,16 @@ export async function checkoutPolicy(payload: any) {
       throw new Error("Seçilen paket bulunamadı.");
     }
 
-    const price = pkg.base_price;
+    const price =
+      typeof pricingInfo.netPrice === "number" && pricingInfo.netPrice > 0
+        ? pricingInfo.netPrice
+        : pkg.base_price;
+
+    const commissionEarned =
+      typeof pricingInfo.finalCommission === "number" &&
+      pricingInfo.finalCommission >= 0
+        ? pricingInfo.finalCommission
+        : pkg.commission_amount;
 
     const wallet = await tx.wallet.findUnique({
       where: { user_id: agentId }
@@ -221,27 +242,35 @@ export async function checkoutPolicy(payload: any) {
     let customerId: string;
     let customerFullName: string;
 
+    const fullNameValue = `${firstName} ${lastName}`.trim();
+
     if (existingCustomer) {
       const updated = await tx.customer.update({
         where: { id: existingCustomer.id },
         data: {
-          full_name: `${firstName} ${lastName}`.trim(),
+          // Keep both for backward compatibility with schema fields
+          full_name: fullNameValue,
+          name: fullNameValue,
+          identityNumber: tcNo,
           phone
         }
       });
       customerId = updated.id;
-      customerFullName = updated.full_name;
+      customerFullName = updated.full_name ?? fullNameValue;
     } else {
       const created = await tx.customer.create({
         data: {
           agent_id: agentId,
-          full_name: `${firstName} ${lastName}`.trim(),
+          // Map to both 'name' (new Prisma field) and 'full_name' (legacy usage)
+          full_name: fullNameValue,
+          name: fullNameValue,
           tc_no: tcNo,
+          identityNumber: tcNo,
           phone
         }
       });
       customerId = created.id;
-      customerFullName = created.full_name;
+      customerFullName = created.full_name ?? fullNameValue;
     }
 
     const existingVehicle = await tx.vehicle.findFirst({
@@ -295,8 +324,10 @@ export async function checkoutPolicy(payload: any) {
         customer_plate: plateNumber,
         car_brand_model: `${brand} ${model}`.trim(),
         sale_price: price,
-        commission_earned: pkg.commission_amount,
-        status: "SUCCESS"
+        commission_earned: commissionEarned,
+        status: "SUCCESS",
+        startDate,
+        endDate
       }
     });
 

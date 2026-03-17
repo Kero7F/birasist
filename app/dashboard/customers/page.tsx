@@ -1,7 +1,18 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { CreateCustomerForm } from "./CreateCustomerForm";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Eye, Pencil } from "lucide-react";
 
 function formatDate(d: Date): string {
   return new Intl.DateTimeFormat("tr-TR", {
@@ -21,94 +32,134 @@ export default async function CustomersPage() {
 
   const customers = await prisma.customer.findMany({
     where: { agent_id: agentId },
-    orderBy: { created_at: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="space-y-8">
-      <section aria-labelledby="create-customer-heading">
-        <h2
-          id="create-customer-heading"
-          className="mb-4 text-lg font-semibold text-foreground"
-        >
-          Yeni müşteri ekle
-        </h2>
-        <div className="rounded-lg border border-border bg-card p-4 dark:bg-card">
-          <CreateCustomerForm />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="w-full md:max-w-xl">
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+              <Search className="h-4 w-4" />
+            </span>
+            <Input
+              placeholder="Ara..."
+              className="pl-9"
+              aria-label="Müşteri ara"
+            />
+          </div>
         </div>
-      </section>
+        <Button className="inline-flex items-center gap-2">
+          + Yeni Müşteri Oluştur
+        </Button>
+      </div>
 
-      <section aria-labelledby="customers-list-heading">
-        <h2
-          id="customers-list-heading"
-          className="mb-4 text-lg font-semibold text-foreground"
-        >
-          Müşteri listesi
-        </h2>
-        <div className="overflow-hidden rounded-lg border border-border bg-card dark:bg-card">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50 dark:bg-muted/30">
-                  <th
-                    scope="col"
-                    className="px-4 py-3 font-medium text-muted-foreground"
+      <section
+        aria-label="Müşteri CRM tablosu"
+        className="rounded-xl border border-border bg-card text-card-foreground"
+      >
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[140px]">MÜŞTERİ TÜRÜ</TableHead>
+                <TableHead>MÜŞTERİ/FİRMA ADI</TableHead>
+                <TableHead className="whitespace-nowrap">T.C. / V.K.N.</TableHead>
+                <TableHead>İL</TableHead>
+                <TableHead>İLÇE</TableHead>
+                <TableHead className="whitespace-nowrap">KAYIT TARİHİ</TableHead>
+                <TableHead className="text-right">İŞLEMLER</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {customers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-sm text-muted-foreground"
                   >
-                    Ad Soyad
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 font-medium text-muted-foreground"
-                  >
-                    TC No
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 font-medium text-muted-foreground"
-                  >
-                    Telefon
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 font-medium text-muted-foreground"
-                  >
-                    Kayıt tarihi
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      Henüz müşteri bulunmamaktadır.
-                    </td>
-                  </tr>
-                ) : (
-                  customers.map((customer) => (
-                    <tr
-                      key={customer.id}
-                      className="border-b border-border last:border-b-0 hover:bg-muted/30 dark:hover:bg-muted/20"
-                    >
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {customer.full_name}
-                      </td>
-                      <td className="px-4 py-3 text-foreground font-mono text-xs">
-                        {customer.tc_no}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        {customer.phone}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {formatDate(customer.created_at)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                    Henüz kayıtlı müşteri bulunmuyor. Yeni müşteri oluşturarak
+                    başlayın.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                customers.map((customer) => (
+                  <TableRow key={customer.id} className="hover:bg-muted/40">
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          customer.type === "Kurumsal"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-300"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                        }
+                      >
+                        {customer.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {customer.name}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {customer.identityNumber}
+                    </TableCell>
+                    <TableCell>{customer.city ?? "—"}</TableCell>
+                    <TableCell>{customer.district ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(customer.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="Detayları görüntüle"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="Düzenle"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+          <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs text-muted-foreground">
+          <div>Toplam {customers.length} kayıt</div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+            >
+              Önceki
+            </Button>
+            <span className="text-foreground">
+              1 <span className="text-muted-foreground">/ 1</span>
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+            >
+              Sonraki
+            </Button>
           </div>
         </div>
       </section>

@@ -39,59 +39,63 @@ export function RequestBalanceButton() {
       <DialogTrigger asChild>
         <Button type="button" className="inline-flex items-center gap-2">
           <PlusCircle className="mr-2 h-4 w-4" />
-          Bakiye Talep Et
+          Talep Oluştur
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg bg-card text-card-foreground border border-border">
         <DialogHeader className="flex flex-row items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <Send className="h-4 w-4" />
           </div>
           <div>
             <DialogTitle className="text-md font-semibold">
-              Bakiye Talep Formu
+              Talep Tutar Formu
             </DialogTitle>
           </div>
         </DialogHeader>
         <DialogDescription className="mt-1 text-sm text-muted-foreground">
-          Hesabınıza yüklenmesini istediğiniz tutarı giriniz. İşleminizin
-          onaylanması için tutarın banka hesaplarımıza ulaşmış olması
-          gerekmektedir.
+          Çekmek istediğiniz komisyon tutarını giriniz. En az ₺1.000,00 tutarında
+          talep oluşturulabilir.
         </DialogDescription>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="bank">Ödeme Yapılan Banka</Label>
-            <Select
-              value={bank}
-              onValueChange={(value) => setBank(value)}
-              required
-            >
+            <Label htmlFor="bank">IBAN Seçimi</Label>
+            <Select value={bank} onValueChange={(value) => setBank(value)} required>
               <SelectTrigger id="bank" className="w-full">
-                <SelectValue placeholder="Banka seçiniz" />
+                <SelectValue placeholder="IBAN seçiniz" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ziraat">Ziraat Bankası</SelectItem>
-                <SelectItem value="garanti">Garanti BBVA</SelectItem>
-                <SelectItem value="isbank">İş Bankası</SelectItem>
+                <SelectItem value="iban-1">Kayıtlı IBAN - 1</SelectItem>
+                <SelectItem value="iban-2">Kayıtlı IBAN - 2</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="amount">Talep Tutarınız</Label>
-            <Input
-              id="amount"
-              type="number"
-              inputMode="decimal"
-              placeholder="Örn: 5000"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                ₺
+              </span>
+              <Input
+                id="amount"
+                type="number"
+                inputMode="decimal"
+                placeholder="Örn: 1000"
+                className="pl-7"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
-          <Button type="submit" className="mt-2 w-full bg-green-500 hover:bg-green-600 text-white">
-            Talep Oluştur
+          <Button
+            type="submit"
+            className="mt-2 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Komisyon Çek
           </Button>
         </form>
       </DialogContent>

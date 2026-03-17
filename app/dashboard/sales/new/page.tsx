@@ -11,7 +11,7 @@ export default async function NewSalePage() {
 
   const agentId = session.user.id;
 
-  const [customers, packages] = await Promise.all([
+  const [customers, packages, wallet] = await Promise.all([
     prisma.customer.findMany({
       where: { agent_id: agentId },
       orderBy: { full_name: "asc" },
@@ -20,6 +20,9 @@ export default async function NewSalePage() {
     prisma.package.findMany({
       where: { is_active: true },
       orderBy: { created_at: "asc" }
+    }),
+    prisma.wallet.findUnique({
+      where: { user_id: agentId }
     })
   ]);
 
@@ -28,7 +31,11 @@ export default async function NewSalePage() {
       <h1 className="text-lg font-semibold text-foreground">
         Yeni Satış / Poliçe Oluştur
       </h1>
-      <SalesWizard customers={customers} packages={packages} />
+      <SalesWizard
+        customers={customers}
+        packages={packages}
+        walletBalance={wallet?.balance ?? 0}
+      />
     </div>
   );
 }

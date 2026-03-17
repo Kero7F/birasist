@@ -39,13 +39,18 @@ type PackageOption = {
 type SalesWizardProps = {
   customers: CustomerOption[];
   packages: PackageOption[];
+  walletBalance: number;
 };
 
 type Step = 1 | 2 | 3 | 4;
 
 const brandKeys = Object.keys(CAR_BRANDS);
 
-export function SalesWizard({ customers, packages }: SalesWizardProps) {
+export function SalesWizard({
+  customers,
+  packages,
+  walletBalance
+}: SalesWizardProps) {
   const [step, setStep] = useState<Step>(1);
   const router = useRouter();
 
@@ -67,6 +72,22 @@ export function SalesWizard({ customers, packages }: SalesWizardProps) {
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, startTransition] = useTransition();
+
+  const todayIso = useMemo(
+    () => new Date().toISOString().slice(0, 10),
+    []
+  );
+  const [serviceStartDate, setServiceStartDate] = useState<string>(todayIso);
+  const [kvkkAccepted, setKvkkAccepted] = useState<boolean>(false);
+  const [sameDayTraffic, setSameDayTraffic] = useState<boolean>(true);
+  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "card">(
+    "wallet"
+  );
+  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
+  const [discount, setDiscount] = useState<number>(0);
+  const [calculatedCommission, setCalculatedCommission] = useState<number>(0);
+  const [finalCommission, setFinalCommission] = useState<number>(0);
+  const [netPrice, setNetPrice] = useState<number>(0);
 
   const [customerCheckState, customerCheckAction] = useFormState<
     CheckCustomerState,
@@ -125,16 +146,68 @@ export function SalesWizard({ customers, packages }: SalesWizardProps) {
     }
   };
 
-  const handlePlateChange = (value: string) => {
-    const upper = value.toUpperCase();
-    setPlateNumber(upper);
+  const handlePlateChange = (raw: string) => {
+    const formattedPlate = raw.replace(/\s/g, "").toUpperCase();
+    setPlateNumber(formattedPlate);
 
-    if (upper.replace(/\s/g, "").length >= 5) {
+    if (!formattedPlate) return;
+
+    if (formattedPlate.length >= 5) {
       const fd = new FormData();
-      fd.set("plate", upper);
+      fd.set("plate", formattedPlate);
       vehicleCheckAction(fd);
     }
   };
+
+  const selectedPackage = useMemo(
+    () => packages.find((p) => p.id === selectedPackageId) ?? null,
+    [packages, selectedPackageId]
+  );
+
+  const priceOptions = useMemo(() => {
+    if (!selectedPackage) return [] as number[];
+    const base = selectedPackage.base_price;
+    return [0, 200, 400, 600].map((inc) => base + inc);
+  }, [selectedPackage]);
+
+  useEffect(() => {
+    if (!selectedPackage) {
+      setSelectedPrice(null);
+      setCalculatedCommission(0);
+      setFinalCommission(0);
+      setNetPrice(0);
+      setDiscount(0);
+      return;
+    }
+
+    if (selectedPrice === null) {
+      setSelectedPrice(selectedPackage.base_price);
+    }
+  }, [selectedPackage, selectedPrice]);
+
+  useEffect(() => {
+    if (!selectedPackage || selectedPrice === null) {
+      setCalculatedCommission(0);
+      setFinalCommission(0);
+      setNetPrice(0);
+      return;
+    }
+
+    // Temporary manual commission logic until admin configuration is ready.
+    const baseCommission =
+      selectedPackage.name === "Yol Yardım Plus"
+        ? 270
+        : selectedPackage.commission_amount;
+
+    const safeDiscount = Math.min(discount, baseCommission);
+
+    setCalculatedCommission(baseCommission);
+    setFinalCommission(baseCommission - safeDiscount);
+    setNetPrice(selectedPrice - safeDiscount);
+    if (safeDiscount !== discount) {
+      setDiscount(safeDiscount);
+    }
+  }, [selectedPackage, selectedPrice, discount]);
 
   const canGoNext = (): boolean => {
     if (step === 1) {
@@ -154,7 +227,7 @@ export function SalesWizard({ customers, packages }: SalesWizardProps) {
       );
     }
     if (step === 3) {
-      return selectedPackageId.length > 0;
+      return selectedPackageId.length > 0 && kvkkAccepted;
     }
     return true;
   };
@@ -188,7 +261,18 @@ export function SalesWizard({ customers, packages }: SalesWizardProps) {
         usageType,
         isNewVehicle
       },
-      selectedPackage: packages.find((p) => p.id === selectedPackageId) ?? null
+      selectedPackage,
+      startDate: serviceStartDate,
+      pricing: {
+        selectedPrice,
+        discount,
+        finalCommission,
+        netPrice
+      },
+      payment: {
+        method: paymentMethod,
+        sameDayTraffic
+      }
     };
 
     startTransition(async () => {
@@ -401,8 +485,9 @@ export function SalesWizard({ customers, packages }: SalesWizardProps) {
                 type="text"
                 value={plateNumber}
                 onChange={(e) => handlePlateChange(e.target.value)}
+                maxLength={11}
                 className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground uppercase outline-none transition focus:ring-2 focus:ring-ring"
-                placeholder="34 ABC 123"
+                placeholder="34ABC123"
               />
               {vehicleCheckState.error && (
                 <p className="text-xs text-red-400">
@@ -509,133 +594,449 @@ export function SalesWizard({ customers, packages }: SalesWizardProps) {
       )}
 
       {step === 3 && (
-        <section className="rounded-lg border border-border bg-card p-4 space-y-4 dark:bg-card">
-          <h2 className="text-sm font-semibold text-foreground">
-            3. Paket Seçimi
-          </h2>
+        <section className="rounded-lg border border-border bg-card p-4 space-y-5 dark:bg-card">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                3. Paket Seçimi
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Hizmet başlangıç tarihini seçin ve paketin kapsamını inceleyin.
+              </p>
+            </div>
+            <div className="space-y-1 text-right">
+              <label
+                htmlFor="service-start-date"
+                className="block text-[11px] font-medium text-muted-foreground"
+              >
+                Hizmet Başlangıç Tarihi
+              </label>
+              <input
+                id="service-start-date"
+                type="date"
+                value={serviceStartDate}
+                min={todayIso}
+                onChange={(e) => setServiceStartDate(e.target.value)}
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
           {packages.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Henüz tanımlı paket bulunmamaktadır.
             </p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {packages.map((pkg) => {
-                const isSelected = selectedPackageId === pkg.id;
-                return (
-                  <button
-                    key={pkg.id}
-                    type="button"
-                    onClick={() => setSelectedPackageId(pkg.id)}
-                    className={`flex flex-col items-stretch rounded-lg border px-4 py-3 text-left text-sm transition ${
-                      isSelected
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-card hover:border-primary/60"
-                    }`}
-                  >
+          <div className="grid gap-4 md:grid-cols-[2fr_minmax(260px,1.4fr)]">
+            <div className="grid gap-3 sm:grid-cols-2">
+                {packages.map((pkg) => {
+                  const isSelected = selectedPackageId === pkg.id;
+                  return (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => setSelectedPackageId(pkg.id)}
+                      className={`flex flex-col items-stretch rounded-lg border px-4 py-3 text-left text-sm transition ${
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-card hover:border-primary/60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground">
+                          {pkg.name}
+                        </span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {pkg.base_price.toLocaleString("tr-TR", {
+                            style: "currency",
+                            currency: "TRY"
+                          })}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
+                        {pkg.limits_description}
+                      </p>
+                      <p className="mt-1 text-[11px] text-emerald-500">
+                        Komisyon:{" "}
+                        {pkg.commission_amount.toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY"
+                        })}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border bg-background/60 p-3 text-sm">
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                  Paket &amp; Fiyat Özeti
+                </h3>
+                {selectedPackage ? (
+                  <>
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-foreground">
-                        {pkg.name}
+                        {selectedPackage.name}
                       </span>
                       <span className="text-xs font-mono text-muted-foreground">
-                        {pkg.base_price.toLocaleString("tr-TR", {
+                        {selectedPackage.base_price.toLocaleString("tr-TR", {
                           style: "currency",
                           currency: "TRY"
                         })}
                       </span>
                     </div>
-                    <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
-                      {pkg.limits_description}
+                    <p className="text-xs text-muted-foreground">
+                      {selectedPackage.limits_description}
                     </p>
-                    <p className="mt-1 text-[11px] text-emerald-500">
-                      Komisyon:{" "}
-                      {pkg.commission_amount.toLocaleString("tr-TR", {
-                        style: "currency",
-                        currency: "TRY"
-                      })}
-                    </p>
-                  </button>
-                );
-              })}
+                    <div className="mt-3 space-y-2 text-xs">
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-medium text-muted-foreground">
+                          Satış Fiyatı
+                        </label>
+                        <select
+                          value={selectedPrice ?? ""}
+                          onChange={(e) =>
+                            setSelectedPrice(
+                              e.target.value ? Number(e.target.value) : null
+                            )
+                          }
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                        >
+                          <option value="">Fiyat seçin...</option>
+                          {priceOptions.map((p) => (
+                            <option key={p} value={p}>
+                              {p.toLocaleString("tr-TR", {
+                                style: "currency",
+                                currency: "TRY"
+                              })}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-medium text-muted-foreground">
+                          İskonto Tutarı (₺)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={discount}
+                          onChange={(e) =>
+                            setDiscount(Math.max(0, Number(e.target.value) || 0))
+                          }
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                        />
+                      </div>
+                      <div className="mt-2 space-y-0.5 text-[11px]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            Komisyon
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {calculatedCommission.toLocaleString("tr-TR", {
+                              style: "currency",
+                              currency: "TRY"
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            İskonto
+                          </span>
+                          <span className="font-medium text-red-500">
+                            -
+                            {discount.toLocaleString("tr-TR", {
+                              style: "currency",
+                              currency: "TRY"
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            Kalan Komisyon
+                          </span>
+                          <span className="font-medium text-emerald-500">
+                            {finalCommission.toLocaleString("tr-TR", {
+                              style: "currency",
+                              currency: "TRY"
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-dashed border-border pt-1 mt-1">
+                          <span className="text-muted-foreground">
+                            Net Fiyat
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {netPrice.toLocaleString("tr-TR", {
+                              style: "currency",
+                              currency: "TRY"
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Sağdan bir paket seçtiğinizde kapsam ve fiyat hesaplaması
+                    burada gösterilecektir.
+                  </p>
+                )}
+              </div>
             </div>
           )}
+
+          <div className="flex items-start gap-2 rounded-md border border-border bg-background/60 px-3 py-2 text-xs">
+            <input
+              id="kvkk-checkbox"
+              type="checkbox"
+              checked={kvkkAccepted}
+              onChange={(e) => setKvkkAccepted(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 rounded border-border bg-background text-primary focus:ring-2 focus:ring-ring"
+            />
+            <label
+              htmlFor="kvkk-checkbox"
+              className="cursor-pointer text-[11px] leading-snug text-muted-foreground"
+            >
+              KVKK ve Mesafeli Satış Sözleşmesini okudum, kabul ediyorum.
+            </label>
+          </div>
         </section>
       )}
 
       {step === 4 && (
         <section className="rounded-lg border border-border bg-card p-4 space-y-4 dark:bg-card">
           <h2 className="text-sm font-semibold text-foreground">
-            4. Özet & Onay
+            4. Özet &amp; Ödeme
           </h2>
           {submitError && (
             <div className="rounded-md border border-red-500/60 bg-red-950/60 px-3 py-2 text-xs text-red-100">
               {submitError}
             </div>
           )}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 text-sm">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                Müşteri
-              </h3>
-              <p className="text-foreground">
-                {firstName} {lastName}{" "}
-                <span className="text-xs text-muted-foreground">
-                  ({tcNo || "TC yok"})
-                </span>
-              </p>
-              <p className="text-muted-foreground">{phone || "Telefon yok"}</p>
-              {(city || district) && (
-                <p className="text-muted-foreground text-xs">
-                  {city} {district && ` / ${district}`}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2 text-sm">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                Araç
-              </h3>
-              <p className="text-foreground font-mono">{plateNumber}</p>
-              <p className="text-muted-foreground">
-                {brand} {model && `/ ${model}`} {year && `• ${year}`}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                {usageType || "Kullanım türü seçilmedi"}
-              </p>
-            </div>
-          </div>
 
-          <div className="space-y-2 text-sm">
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-              Seçilen paket
-            </h3>
-            {selectedPackageId ? (
-              (() => {
-                const pkg =
-                  packages.find((p) => p.id === selectedPackageId) ?? null;
-                if (!pkg) return <p className="text-muted-foreground">—</p>;
-                return (
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-foreground">
-                        {pkg.name}
-                      </span>
-                      <span className="text-xs font-mono text-muted-foreground">
-                        {pkg.base_price.toLocaleString("tr-TR", {
-                          style: "currency",
-                          currency: "TRY"
-                        })}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {pkg.limits_description}
-                    </p>
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)]">
+            {/* Left: Summary */}
+            <div className="space-y-4 text-sm">
+              <div className="rounded-md border border-border bg-background/60 p-3 space-y-2">
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                  Müşteri
+                </h3>
+                <p className="text-foreground">
+                  {firstName} {lastName}{" "}
+                  <span className="text-xs text-muted-foreground">
+                    ({tcNo || "TC yok"})
+                  </span>
+                </p>
+                <p className="text-muted-foreground">
+                  {phone || "Telefon yok"}
+                </p>
+                {(city || district) && (
+                  <p className="text-muted-foreground text-xs">
+                    {city} {district && ` / ${district}`}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-md border border-border bg-background/60 p-3 space-y-2">
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                  Araç
+                </h3>
+                <p className="text-foreground font-mono">{plateNumber}</p>
+                <p className="text-muted-foreground">
+                  {brand} {model && `/ ${model}`} {year && `• ${year}`}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {usageType || "Kullanım türü seçilmedi"}
+                </p>
+              </div>
+
+              <div className="rounded-md border border-border bg-background/60 p-3 space-y-2">
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                  Paket Özeti
+                </h3>
+                {selectedPackageId ? (
+                  (() => {
+                    const pkg =
+                      packages.find((p) => p.id === selectedPackageId) ?? null;
+                    if (!pkg)
+                      return (
+                        <p className="text-xs text-muted-foreground">—</p>
+                      );
+                    return (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-foreground">
+                            {pkg.name}
+                          </span>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {pkg.base_price.toLocaleString("tr-TR", {
+                              style: "currency",
+                              currency: "TRY"
+                            })}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {pkg.limits_description}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Hizmet Başlangıç Tarihi:{" "}
+                          <span className="font-medium text-foreground">
+                            {serviceStartDate ||
+                              new Date().toLocaleDateString("tr-TR")}
+                          </span>
+                        </p>
+                      </>
+                    );
+                  })()
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Henüz bir paket seçilmedi.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Payment */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-md border border-border bg-background/60 px-3 py-2 text-xs">
+                <div className="space-y-0.5">
+                  <p className="font-medium text-foreground">
+                    Trafik poliçesi aynı gün başlıyor mu?
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {serviceStartDate === todayIso
+                      ? "Aynı gün başlayan poliçeler için ek kontrol yapılacaktır."
+                      : "Poliçe tarihi değiştirildi."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (serviceStartDate !== todayIso) return;
+                    setSameDayTraffic((v) => !v);
+                  }}
+                  disabled={serviceStartDate !== todayIso}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition ${
+                    sameDayTraffic
+                      ? "border-emerald-500 bg-emerald-500/90"
+                      : "border-border bg-background"
+                  } ${serviceStartDate !== todayIso ? "opacity-60" : ""}`}
+                  aria-pressed={sameDayTraffic}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-background shadow transition ${
+                      sameDayTraffic ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("wallet")}
+                  className={`flex flex-col gap-2 rounded-md border px-3 py-3 text-left text-xs transition ${
+                    paymentMethod === "wallet"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:border-primary/60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase text-muted-foreground">
+                      Mevcut Bakiyemden Öde
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-500">
+                      {walletBalance.toLocaleString("tr-TR", {
+                        style: "currency",
+                        currency: "TRY"
+                      })}
+                    </span>
                   </div>
-                );
-              })()
-            ) : (
-              <p className="text-muted-foreground">
-                Henüz bir paket seçilmedi.
-              </p>
-            )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Bakiyenizden tahsil edilecektir. İşlem anında bakiyeniz
+                    güncellenecektir.
+                  </p>
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleCheckout}
+                      disabled={
+                        isSubmitting || netPrice <= 0 || walletBalance < netPrice
+                      }
+                      className="inline-flex w-full items-center justify-center rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-emerald-950 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isSubmitting
+                        ? "İşleniyor..."
+                        : `Mevcut Bakiyem İle Öde (${netPrice.toLocaleString(
+                            "tr-TR",
+                            {
+                              style: "currency",
+                              currency: "TRY"
+                            }
+                          )})`}
+                    </button>
+                    {walletBalance < netPrice && netPrice > 0 && (
+                      <p className="mt-1 text-[11px] text-red-500">
+                        Bakiyeniz yetersiz.
+                      </p>
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("card")}
+                  className={`flex flex-col gap-2 rounded-md border px-3 py-3 text-left text-xs transition ${
+                    paymentMethod === "card"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:border-primary/60"
+                  }`}
+                >
+                  <span className="text-[11px] font-semibold uppercase text-muted-foreground">
+                    Kart ile Öde
+                  </span>
+                  <div className="grid gap-2">
+                    <input
+                      type="text"
+                      placeholder="Kart üzerindeki isim"
+                      className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Kart numarası"
+                      className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                    />
+                    <div className="grid grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="AA/YY"
+                        className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                      />
+                      <input
+                        type="text"
+                        placeholder="CVC"
+                        className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCheckout}
+                        disabled={isSubmitting || netPrice <= 0}
+                        className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {isSubmitting
+                          ? "İşleniyor..."
+                          : `Kart ile Öde (${netPrice.toLocaleString("tr-TR", {
+                              style: "currency",
+                              currency: "TRY"
+                            })})`}
+                      </button>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}

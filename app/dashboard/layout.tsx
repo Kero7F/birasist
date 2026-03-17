@@ -65,7 +65,9 @@ export default async function DashboardLayout({
       >
         <div className="flex flex-1 flex-col">
           <div className="flex h-14 items-center justify-between border-b border-border px-4 lg:px-4">
-            <span className="font-semibold text-foreground">Acente Panel</span>
+            <span className="font-semibold text-foreground">
+              {isAdmin ? "Admin Panel" : "Acente Panel"}
+            </span>
             <label
               htmlFor="sidebar-toggle"
               className="cursor-pointer rounded p-2 hover:bg-muted lg:hidden"

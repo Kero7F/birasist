@@ -27,6 +27,7 @@ export async function createPackage(
 
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const priceRaw = (formData.get("price") as string | null) ?? "";
+  const commissionRaw = (formData.get("commission") as string | null) ?? "";
   const description =
     (formData.get("description") as string | null)?.trim() ?? "";
   const isActiveRaw = formData.get("isActive");
@@ -61,6 +62,11 @@ export async function createPackage(
     return { error: "Geçerli bir fiyat girin." };
   }
 
+  const commission = parsePrice(commissionRaw);
+  if (commission === null) {
+    return { error: "Geçerli bir komisyon tutarı girin." };
+  }
+
   const isActive =
     typeof isActiveRaw === "string" || isActiveRaw instanceof Blob;
 
@@ -70,7 +76,9 @@ export async function createPackage(
         name,
         limits_description: description,
         base_price: price,
-        commission_amount: 0,
+        commission_amount: commission,
+        price,
+        commission,
         is_active: isActive,
          totalLimit,
          breakdownLimit,
@@ -137,6 +145,7 @@ export async function updatePackage(
 
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const priceRaw = (formData.get("price") as string | null) ?? "";
+  const commissionRaw = (formData.get("commission") as string | null) ?? "";
   const description =
     (formData.get("description") as string | null)?.trim() ?? "";
   const isActiveRaw = formData.get("isActive");
@@ -171,6 +180,11 @@ export async function updatePackage(
     return { error: "Geçerli bir fiyat girin." };
   }
 
+  const commission = parsePrice(commissionRaw);
+  if (commission === null) {
+    return { error: "Geçerli bir komisyon tutarı girin." };
+  }
+
   const isActive =
     typeof isActiveRaw === "string" || isActiveRaw instanceof Blob;
 
@@ -181,7 +195,9 @@ export async function updatePackage(
         name,
         limits_description: description,
         base_price: price,
-        commission_amount: 0,
+        commission_amount: commission,
+        price,
+        commission,
         is_active: isActive,
         totalLimit,
         breakdownLimit,

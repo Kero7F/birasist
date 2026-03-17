@@ -2,13 +2,55 @@
   "node": {
     "e010023e977496bc131c6d676887418e4d4b2a20": {
       "workers": {
-        "app/dashboard/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!"
+        "app/dashboard/sales/new/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/policeler/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/customers/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/vehicles/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/packages/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!"
       },
       "layer": {
-        "app/dashboard/page": "rsc"
+        "app/dashboard/sales/new/page": "rsc",
+        "app/dashboard/page": "rsc",
+        "app/dashboard/policeler/page": "rsc",
+        "app/dashboard/customers/page": "rsc",
+        "app/dashboard/vehicles/page": "rsc",
+        "app/dashboard/packages/page": "rsc"
+      }
+    },
+    "666d13a75b37e930f9b181211b98202d0413fce7": {
+      "workers": {
+        "app/dashboard/sales/new/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Csales%5C%5Cactions.ts%22%2C%5B%22checkCustomerByTc%22%2C%22checkVehicleByPlate%22%2C%22checkoutPolicy%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/sales/new/page": "action-browser"
+      }
+    },
+    "7458ff13902463aa30c53e6c9c230ece6b19a07d": {
+      "workers": {
+        "app/dashboard/sales/new/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Csales%5C%5Cactions.ts%22%2C%5B%22checkCustomerByTc%22%2C%22checkVehicleByPlate%22%2C%22checkoutPolicy%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/sales/new/page": "action-browser"
+      }
+    },
+    "c42d29359c8ccce899790afd10d8a55db09019eb": {
+      "workers": {
+        "app/dashboard/sales/new/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Csales%5C%5Cactions.ts%22%2C%5B%22checkCustomerByTc%22%2C%22checkVehicleByPlate%22%2C%22checkoutPolicy%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/sales/new/page": "action-browser"
+      }
+    },
+    "709704b8bc96d03700494f4b18f70e31f38284b2": {
+      "workers": {
+        "app/dashboard/vehicles/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cvehicles%5C%5Cactions.ts%22%2C%5B%22createVehicle%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/vehicles/page": "action-browser"
       }
     }
   },
   "edge": {},
-  "encryptionKey": "IWggEqyjviiILAzAquLT1aurYKTEgDF0Yufr7N/znak="
+  "encryptionKey": "3cPW59kJLvT9ptKYvRWfDdJqRBdbF/uTG5ZrbQEIvGI="
 }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Wallet, TrendingUp, Receipt, Clock } from "lucide-react";
+import { Banknote, ArrowDownToLine, Coins, Clock } from "lucide-react";
 import { RequestBalanceButton } from "@/components/RequestBalanceButton";
 
 type TransactionType = "CREDIT" | "DEBIT";
@@ -83,10 +83,13 @@ export default async function AgentWalletPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold text-foreground">
-            Cüzdanım &amp; İşlem Geçmişi
+            Komisyon Çekme Talepleri
           </h1>
           <p className="text-sm text-muted-foreground">
-            Poliçe kesebilmek için cüzdanınızda yeterli bakiye bulunmalıdır.
+            Komisyon talebi oluşturabilmeniz için biriken bakiyenizin en az ₺1.000,00 olması gerekmektedir.
+          </p>
+          <p className="text-xs text-red-500">
+            Not: Her ayın 01-31 aralığında oluşturulan komisyon çekme talepleri onaylandığı takdirde, takip eden ayın 15&apos;inde yatırılacaktır.
           </p>
         </div>
         <RequestBalanceButton />
@@ -98,30 +101,14 @@ export default async function AgentWalletPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Mevcut Bakiye
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-card-foreground">
-                  {formatCurrency(balance)}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Wallet className="h-5 w-5" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card text-card-foreground border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Toplam Yüklenen
+                  Toplam Kazanç
                 </p>
                 <p className="mt-2 text-2xl font-semibold text-card-foreground">
                   {formatCurrency(totalLoaded)}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <TrendingUp className="h-5 w-5" />
+                <Banknote className="h-5 w-5" />
               </div>
             </div>
           </div>
@@ -130,14 +117,30 @@ export default async function AgentWalletPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Toplam Harcanan
+                  Toplam Çekilen
                 </p>
                 <p className="mt-2 text-2xl font-semibold text-card-foreground">
                   {formatCurrency(totalSpent)}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Receipt className="h-5 w-5" />
+                <ArrowDownToLine className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card text-card-foreground border border-border rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Biriken Bakiye
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-card-foreground">
+                  {formatCurrency(balance)}
+                </p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Coins className="h-5 w-5" />
               </div>
             </div>
           </div>

@@ -20,6 +20,7 @@ type FormMode = "create" | "update";
 type FormState = {
   name: string;
   price: string;
+  commission: string;
   description: string;
   totalLimit: string;
   breakdownLimit: string;
@@ -35,6 +36,7 @@ type FormState = {
 const defaultFormState: FormState = {
   name: "",
   price: "",
+  commission: "",
   description: "",
   totalLimit: "",
   breakdownLimit: "",
@@ -61,6 +63,7 @@ export function AdminPackagesClient({ packages }: AdminPackagesClientProps) {
     setForm({
       name: pkg.name,
       price: String(pkg.base_price),
+      commission: String(pkg.commission_amount ?? 0),
       description: pkg.limits_description ?? "",
       totalLimit: pkg.totalLimit,
       breakdownLimit: pkg.breakdownLimit,
@@ -99,6 +102,7 @@ export function AdminPackagesClient({ packages }: AdminPackagesClientProps) {
     const fd = new FormData();
     fd.set("name", form.name);
     fd.set("price", form.price);
+    fd.set("commission", form.commission);
     fd.set("description", form.description);
     fd.set("totalLimit", form.totalLimit);
     fd.set("breakdownLimit", form.breakdownLimit);
@@ -186,8 +190,8 @@ export function AdminPackagesClient({ packages }: AdminPackagesClientProps) {
               </div>
             )}
 
-            {/* Name & Price */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Name, Price & Commission */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <label
                   htmlFor="pkg-name"
@@ -220,6 +224,25 @@ export function AdminPackagesClient({ packages }: AdminPackagesClientProps) {
                   required
                   value={form.price}
                   onChange={(e) => handleChange("price", e.target.value)}
+                  className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="pkg-commission"
+                  className="block text-sm font-medium text-muted-foreground"
+                >
+                  Komisyon Tutarı (₺)
+                </label>
+                <input
+                  id="pkg-commission"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={form.commission}
+                  onChange={(e) => handleChange("commission", e.target.value)}
                   className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
                   placeholder="0,00"
                 />

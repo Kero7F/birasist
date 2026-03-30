@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -29,9 +29,48 @@ enum SaleStatus {
   CANCELLED
 }
 
+model City {
+  id         Int        @id @default(autoincrement())
+  adi        String?    @db.VarChar(255)
+  districts  District[]
+  customers  Customer[]
+
+  @@map("iller")
+}
+
+model District {
+  id         Int        @id @default(autoincrement())
+  adi        String?    @db.VarChar(255)
+  il_id      Int?
+  city       City?      @relation(fields: [il_id], references: [id], onDelete: Cascade)
+  customers  Customer[]
+
+  @@map("ilceler")
+}
+
+model Neighborhood {
+  id         Int        @id @default(autoincrement())
+  adi        String?    @db.VarChar(255)
+  ilce_id    Int?
+  il_id      Int?       // Veri kaybını önlemek için eklendi
+
+  @@map("mahalleler")
+}
+
+model Street {
+  id         Int        @id @default(autoincrement())
+  adi        String?    @db.VarChar(255)
+  mahalle_id Int?
+  ilce_id    Int?       // Veri kaybını önlemek için eklendi
+  il_id      Int?       // Veri kaybını önlemek için eklendi
+
+  @@map("yollar")
+}
+
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid()) @db.Char(36)
   tc_no         String   @unique
+  bayiKodu      Int?     @unique
   first_name    String
   last_name     String
   phone         String
@@ -46,13 +85,13 @@ model User {
   balance       Float    @default(0)
 
   wallet    Wallet?
-  sales     Sale[]
+  policies Sale[]
   customers Customer[]
 }
 
 model Customer {
-  id             String   @id @default(uuid()) @db.Uuid
-  agent_id       String   @db.Uuid
+  id             String   @id @default(uuid()) @db.Char(36)
+  agent_id       String   @db.Char(36)
   full_name      String
   tc_no          String
   phone          String
@@ -62,9 +101,12 @@ model Customer {
   type           String   @default("Bireysel")
   name           String
   identityNumber String
-  city           String?
-  district       String?
   createdAt      DateTime @default(now())
+
+  cityId     Int?      @map("city_id")
+  districtId Int?      @map("district_id")
+  city       City?     @relation(fields: [cityId], references: [id])
+  district   District? @relation(fields: [districtId], references: [id])
 
   agent    User     @relation(fields: [agent_id], references: [id])
   vehicles Vehicle[]
@@ -73,8 +115,8 @@ model Customer {
 }
 
 model Vehicle {
-  id              String   @id @default(uuid()) @db.Uuid
-  customer_id     String   @db.Uuid
+  id              String   @id @default(uuid()) @db.Char(36)
+  customer_id     String   @db.Char(36)
   plate_number    String
   document_serial String?
   brand           String
@@ -87,8 +129,8 @@ model Vehicle {
 }
 
 model Wallet {
-  id         String   @id @default(uuid()) @db.Uuid
-  user_id    String   @unique @db.Uuid
+  id         String   @id @default(uuid()) @db.Char(36)
+  user_id    String   @unique @db.Char(36)
   balance    Float    @default(0)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -98,8 +140,8 @@ model Wallet {
 }
 
 model Transaction {
-  id             String            @id @default(uuid()) @db.Uuid
-  wallet_id      String            @db.Uuid
+  id             String            @id @default(uuid()) @db.Char(36)
+  wallet_id      String            @db.Char(36)
   type           TransactionType
   amount         Float
   status         TransactionStatus
@@ -112,7 +154,7 @@ model Transaction {
 }
 
 model Package {
-  id                 String   @id @default(uuid()) @db.Uuid
+  id                 String   @id @default(uuid()) @db.Char(36)
   name               String
   limits_description String
   base_price         Float
@@ -136,9 +178,9 @@ model Package {
 }
 
 model Sale {
-  id                  String     @id @default(uuid()) @db.Uuid
-  agent_id            String     @db.Uuid
-  package_id          String     @db.Uuid
+  id                  String     @id @default(uuid()) @db.Char(36)
+  agent_id            String     @db.Char(36)
+  package_id          String     @db.Char(36)
   customer_tc         String
   customer_first_name String
   customer_last_name  String
@@ -155,6 +197,21 @@ model Sale {
 
   /// Sözleşme / Poliçe numarası
   policyNumber        String   @unique @default(cuid())
+  sozlesmeNo          String?  @unique
+
+  plaka String?
+  marka String?
+  model String?
+  modelYili Int?
+  kullanimTarzi String?
+  netPrim Float?
+  kdv Float? @default(20)
+  brutPrim Float?
+  il_id Int?
+  ilce_id Int?
+  tcVkn String?
+  telefon String?
+  acikAdres String?
 
   agent   User    @relation(fields: [agent_id], references: [id])
   package Package @relation(fields: [package_id], references: [id])

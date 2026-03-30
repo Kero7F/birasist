@@ -33,6 +33,7 @@ export default async function CustomersPage() {
   const customers = await prisma.customer.findMany({
     where: { agent_id: agentId },
     orderBy: { createdAt: "desc" },
+    include: { city: true, district: true },
   });
 
   return (
@@ -104,8 +105,8 @@ export default async function CustomersPage() {
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {customer.identityNumber}
                     </TableCell>
-                    <TableCell>{customer.city ?? "—"}</TableCell>
-                    <TableCell>{customer.district ?? "—"}</TableCell>
+                    <TableCell>{customer.city?.adi ?? "—"}</TableCell>
+                    <TableCell>{customer.district?.adi ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(customer.createdAt)}
                     </TableCell>

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { generateContractNumber } from "@/lib/generateContractNumber";
 
 export type CheckCustomerState = {
   checked: boolean;
@@ -157,6 +158,15 @@ export async function checkoutPolicy(payload: any) {
     throw new Error("Geçerli bir paket seçilmemiş.");
   }
 
+  const paymentMethodRaw =
+    payload.paymentMethod ?? payload.payment?.method ?? "cash";
+  const paymentMethod =
+    paymentMethodRaw === "wallet" ||
+    paymentMethodRaw === "cash" ||
+    paymentMethodRaw === "credit_card"
+      ? paymentMethodRaw
+      : "cash";
+
   const packageId = payload.selectedPackage.id as string;
   const customerInfo = payload.customer ?? {};
   const vehicleInfo = payload.vehicle ?? {};
@@ -174,6 +184,17 @@ export async function checkoutPolicy(payload: any) {
   const year = parseInt(String(vehicleInfo.year ?? ""), 10);
   const usageType = String(vehicleInfo.usageType ?? "").trim();
 
+  const ilIdRaw = customerInfo.il_id;
+  const ilceIdRaw = customerInfo.ilce_id;
+  const ilId =
+    ilIdRaw === null || ilIdRaw === undefined || ilIdRaw === ""
+      ? null
+      : Number(ilIdRaw);
+  const ilceId =
+    ilceIdRaw === null || ilceIdRaw === undefined || ilceIdRaw === ""
+      ? null
+      : Number(ilceIdRaw);
+
   if (!tcNo || tcNo.length !== 11) {
     throw new Error("TC kimlik numarası geçersiz.");
   }
@@ -185,6 +206,8 @@ export async function checkoutPolicy(payload: any) {
   }
 
   await prisma.$transaction(async (tx) => {
+    const contractNo = generateContractNumber(1903);
+
     const parsedStart =
       startDateInput && !Number.isNaN(Date.parse(startDateInput))
         ? new Date(startDateInput)
@@ -209,27 +232,47 @@ export async function checkoutPolicy(payload: any) {
       throw new Error("Seçilen paket bulunamadı.");
     }
 
-    const price =
+    const effectivePrice =
       typeof pricingInfo.netPrice === "number" && pricingInfo.netPrice > 0
         ? pricingInfo.netPrice
-        : pkg.base_price;
+        : pkg.price > 0
+          ? pkg.price
+          : pkg.base_price;
 
-    const commissionEarned =
-      typeof pricingInfo.finalCommission === "number" &&
-      pricingInfo.finalCommission >= 0
-        ? pricingInfo.finalCommission
-        : pkg.commission_amount;
+    const commissionRatePct =
+      typeof pkg.commission === "number" && pkg.commission > 0
+        ? pkg.commission
+        : 30;
 
-    const wallet = await tx.wallet.findUnique({
-      where: { user_id: agentId }
-    });
+    const commission =
+      pkg.commission_amount > 0
+        ? pkg.commission_amount
+        : effectivePrice * (commissionRatePct / 100);
 
-    if (!wallet) {
+    const netCost = effectivePrice - commission;
+
+    const fullPriceForWalletCheck =
+      pkg.price > 0 ? pkg.price : pkg.base_price;
+
+    const needsWallet =
+      paymentMethod === "wallet" || paymentMethod === "cash";
+
+    const wallet = needsWallet
+      ? await tx.wallet.findUnique({
+          where: { user_id: agentId }
+        })
+      : null;
+
+    if (needsWallet && !wallet) {
       throw new Error("Acente için cüzdan bulunamadı.");
     }
 
-    if (wallet.balance < price) {
-      throw new Error("Yetersiz bakiye. Lütfen cüzdanınıza bakiye yükleyin.");
+    if (
+      paymentMethod === "wallet" &&
+      wallet &&
+      wallet.balance < fullPriceForWalletCheck
+    ) {
+      throw new Error("Yetersiz bakiye");
     }
 
     const existingCustomer = await tx.customer.findFirst({
@@ -323,31 +366,55 @@ export async function checkoutPolicy(payload: any) {
         customer_last_name: customerLastName,
         customer_plate: plateNumber,
         car_brand_model: `${brand} ${model}`.trim(),
-        sale_price: price,
-        commission_earned: commissionEarned,
+        sale_price: effectivePrice,
+        commission_earned: commission,
         status: "SUCCESS",
         startDate,
-        endDate
+        endDate,
+
+        policyNumber: contractNo,
+        sozlesmeNo: contractNo,
+
+        plaka: plateNumber,
+        marka: brand,
+        model,
+        modelYili: year,
+        kullanimTarzi: usageType,
+        netPrim:
+          typeof pricingInfo.netPrice === "number" && pricingInfo.netPrice > 0
+            ? pricingInfo.netPrice
+            : effectivePrice,
+        brutPrim: effectivePrice,
+        il_id: ilId != null && !Number.isNaN(ilId) ? ilId : null,
+        ilce_id: ilceId != null && !Number.isNaN(ilceId) ? ilceId : null,
+        tcVkn: tcNo,
+        telefon: phone,
+        acikAdres: null
       }
     });
 
-    await tx.wallet.update({
-      where: { id: wallet.id },
-      data: {
-        balance: {
-          decrement: price
+    if (needsWallet && wallet) {
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: {
+            decrement: netCost
+          }
         }
-      }
-    });
+      });
 
-    await tx.transaction.create({
-      data: {
-        wallet_id: wallet.id,
-        type: "WITHDRAW",
-        amount: price,
-        status: "COMPLETED",
-        description: "Poliçe Kesimi"
-      }
-    });
+      await tx.transaction.create({
+        data: {
+          wallet_id: wallet.id,
+          type: "WITHDRAW",
+          amount: netCost,
+          status: "COMPLETED",
+          description:
+            paymentMethod === "cash"
+              ? "Poliçe Kesimi (Nakit/POS — net maliyet)"
+              : "Poliçe Kesimi (Cüzdan — net maliyet)"
+        }
+      });
+    }
   });
 }

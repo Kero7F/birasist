@@ -2,20 +2,38 @@
   "node": {
     "e010023e977496bc131c6d676887418e4d4b2a20": {
       "workers": {
-        "app/dashboard/sales/new/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
         "app/dashboard/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
-        "app/dashboard/policeler/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/admin/wallets/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/admin/agents/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/sales/new/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
         "app/dashboard/customers/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
-        "app/dashboard/vehicles/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
-        "app/dashboard/packages/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!"
+        "app/dashboard/policeler/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!",
+        "app/dashboard/admin/packages/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cactions.ts%22%2C%5B%22logout%22%5D%5D%5D&__client_imported__=!"
       },
       "layer": {
-        "app/dashboard/sales/new/page": "rsc",
         "app/dashboard/page": "rsc",
-        "app/dashboard/policeler/page": "rsc",
+        "app/dashboard/admin/wallets/page": "rsc",
+        "app/dashboard/admin/agents/page": "rsc",
+        "app/dashboard/sales/new/page": "rsc",
         "app/dashboard/customers/page": "rsc",
-        "app/dashboard/vehicles/page": "rsc",
-        "app/dashboard/packages/page": "rsc"
+        "app/dashboard/policeler/page": "rsc",
+        "app/dashboard/admin/packages/page": "rsc"
+      }
+    },
+    "9ca7877d8e83e01eab42d0d8aaf3573746ee7bd3": {
+      "workers": {
+        "app/dashboard/admin/wallets/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cadmin%5C%5Cwallets%5C%5Cactions.ts%22%2C%5B%22topUpWallet%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/admin/wallets/page": "action-browser"
+      }
+    },
+    "7a99756de4aad86127a983a48c432ceca13d5f15": {
+      "workers": {
+        "app/dashboard/admin/agents/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cadmin%5C%5Cagents%5C%5Cactions.ts%22%2C%5B%22createAgent%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/admin/agents/page": "action-browser"
       }
     },
     "666d13a75b37e930f9b181211b98202d0413fce7": {
@@ -42,15 +60,39 @@
         "app/dashboard/sales/new/page": "action-browser"
       }
     },
-    "709704b8bc96d03700494f4b18f70e31f38284b2": {
+    "669b0c7a2c2a8b8089cd6b43c1627616ab2c870a": {
       "workers": {
-        "app/dashboard/vehicles/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cvehicles%5C%5Cactions.ts%22%2C%5B%22createVehicle%22%5D%5D%5D&__client_imported__=true!"
+        "app/dashboard/admin/packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cadmin%5C%5Cpackages%5C%5Cactions.ts%22%2C%5B%22togglePackageStatus%22%2C%22createPackage%22%2C%22updatePackage%22%2C%22deletePackage%22%5D%5D%5D&__client_imported__=true!"
       },
       "layer": {
-        "app/dashboard/vehicles/page": "action-browser"
+        "app/dashboard/admin/packages/page": "action-browser"
+      }
+    },
+    "7127db351580150470277063a8183b65d7f85163": {
+      "workers": {
+        "app/dashboard/admin/packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cadmin%5C%5Cpackages%5C%5Cactions.ts%22%2C%5B%22togglePackageStatus%22%2C%22createPackage%22%2C%22updatePackage%22%2C%22deletePackage%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/admin/packages/page": "action-browser"
+      }
+    },
+    "b6721441aa262b4c1bb3f71e1634400d01d8c900": {
+      "workers": {
+        "app/dashboard/admin/packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cadmin%5C%5Cpackages%5C%5Cactions.ts%22%2C%5B%22togglePackageStatus%22%2C%22createPackage%22%2C%22updatePackage%22%2C%22deletePackage%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/admin/packages/page": "action-browser"
+      }
+    },
+    "d8736457335a1acbc6a256f6228068c859766cea": {
+      "workers": {
+        "app/dashboard/admin/packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cacente%5C%5Capp%5C%5Cdashboard%5C%5Cadmin%5C%5Cpackages%5C%5Cactions.ts%22%2C%5B%22togglePackageStatus%22%2C%22createPackage%22%2C%22updatePackage%22%2C%22deletePackage%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/admin/packages/page": "action-browser"
       }
     }
   },
   "edge": {},
-  "encryptionKey": "3cPW59kJLvT9ptKYvRWfDdJqRBdbF/uTG5ZrbQEIvGI="
+  "encryptionKey": "jwHILFb5hNFA63UXW9AImo6A7ny/kUiGt9Rm7UIiR1o="
 }

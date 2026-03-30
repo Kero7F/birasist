@@ -13,6 +13,7 @@ import {
   TcInput,
   PhoneInput
 } from "@/components/ui/SmartInputs";
+import LocationSelect from "@/components/LocationSelect";
 import {
   checkCustomerByTc,
   checkVehicleByPlate,
@@ -34,6 +35,8 @@ type PackageOption = {
   limits_description: string;
   base_price: number;
   commission_amount: number;
+  price: number;
+  commission: number;
 };
 
 type SalesWizardProps = {
@@ -58,8 +61,10 @@ export function SalesWizard({
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
-  const [city, setCity] = useState<string>("");
-  const [district, setDistrict] = useState<string>("");
+  const [ilId, setIlId] = useState<number | null>(null);
+  const [ilceId, setIlceId] = useState<number | null>(null);
+  const [cityName, setCityName] = useState<string>("");
+  const [districtName, setDistrictName] = useState<string>("");
   const [isNewCustomer, setIsNewCustomer] = useState<boolean>(true);
 
   const [plateNumber, setPlateNumber] = useState<string>("");
@@ -80,9 +85,9 @@ export function SalesWizard({
   const [serviceStartDate, setServiceStartDate] = useState<string>(todayIso);
   const [kvkkAccepted, setKvkkAccepted] = useState<boolean>(false);
   const [sameDayTraffic, setSameDayTraffic] = useState<boolean>(true);
-  const [paymentMethod, setPaymentMethod] = useState<"wallet" | "card">(
-    "wallet"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash" | "wallet" | "credit_card"
+  >("cash");
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [discount, setDiscount] = useState<number>(0);
   const [calculatedCommission, setCalculatedCommission] = useState<number>(0);
@@ -164,6 +169,13 @@ export function SalesWizard({
     [packages, selectedPackageId]
   );
 
+  const fullPackagePrice = useMemo(() => {
+    if (!selectedPackage) return 0;
+    return selectedPackage.price > 0
+      ? selectedPackage.price
+      : selectedPackage.base_price;
+  }, [selectedPackage]);
+
   const priceOptions = useMemo(() => {
     if (!selectedPackage) return [] as number[];
     const base = selectedPackage.base_price;
@@ -244,13 +256,14 @@ export function SalesWizard({
   const handleCheckout = () => {
     setSubmitError(null);
     const payload = {
+      paymentMethod,
       customer: {
         tcNo,
         firstName,
         lastName,
         phone,
-        city,
-        district,
+        il_id: ilId,
+        ilce_id: ilceId,
         isNewCustomer
       },
       vehicle: {
@@ -430,40 +443,18 @@ export function SalesWizard({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="wizard-city"
-                className="block text-xs font-medium text-muted-foreground"
-              >
-                İl
-              </label>
-              <input
-                id="wizard-city"
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
-                placeholder="Örn. İstanbul"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="wizard-district"
-                className="block text-xs font-medium text-muted-foreground"
-              >
-                İlçe
-              </label>
-              <input
-                id="wizard-district"
-                type="text"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
-                placeholder="Örn. Kadıköy"
-              />
-            </div>
-          </div>
+          <LocationSelect
+            onCitySelect={(id, name) => {
+              setIlId(id);
+              setCityName(name);
+              setIlceId(null);
+              setDistrictName("");
+            }}
+            onDistrictSelect={(id, name) => {
+              setIlceId(id);
+              setDistrictName(name);
+            }}
+          />
         </section>
       )}
 
@@ -832,9 +823,9 @@ export function SalesWizard({
                 <p className="text-muted-foreground">
                   {phone || "Telefon yok"}
                 </p>
-                {(city || district) && (
+                {(cityName || districtName) && (
                   <p className="text-muted-foreground text-xs">
-                    {city} {district && ` / ${district}`}
+                    {cityName} {districtName && ` / ${districtName}`}
                   </p>
                 )}
               </div>
@@ -933,17 +924,32 @@ export function SalesWizard({
                 </button>
               </div>
 
-              <div className="grid gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("wallet")}
-                  className={`flex flex-col gap-2 rounded-md border px-3 py-3 text-left text-xs transition ${
-                    paymentMethod === "wallet"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-background hover:border-primary/60"
-                  }`}
+              <div className="space-y-2">
+                <label
+                  htmlFor="payment-method"
+                  className="block text-xs font-medium text-muted-foreground"
                 >
-                  <div className="flex items-center justify-between">
+                  Ödeme Yöntemi
+                </label>
+                <select
+                  id="payment-method"
+                  value={paymentMethod}
+                  onChange={(e) =>
+                    setPaymentMethod(
+                      e.target.value as "cash" | "wallet" | "credit_card"
+                    )
+                  }
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+                >
+                  <option value="cash">Nakit / POS</option>
+                  <option value="wallet">Cüzdan Bakiyesi</option>
+                  <option value="credit_card">Kredi Kartı</option>
+                </select>
+              </div>
+
+              {paymentMethod === "wallet" && (
+                <div className="rounded-md border border-border bg-background/60 px-3 py-3 text-xs">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-semibold uppercase text-muted-foreground">
                       Mevcut Bakiyemden Öde
                     </span>
@@ -954,16 +960,18 @@ export function SalesWizard({
                       })}
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Bakiyenizden tahsil edilecektir. İşlem anında bakiyeniz
-                    güncellenecektir.
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Paket fiyatı kadar bakiye gerekir; tahsilat net maliyet
+                    (komisyon düşülmüş) üzerinden cüzdandan düşülür.
                   </p>
-                  <div className="pt-1">
+                  <div className="mt-3">
                     <button
                       type="button"
                       onClick={handleCheckout}
                       disabled={
-                        isSubmitting || netPrice <= 0 || walletBalance < netPrice
+                        isSubmitting ||
+                        netPrice <= 0 ||
+                        walletBalance < fullPackagePrice
                       }
                       className="inline-flex w-full items-center justify-center rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-emerald-950 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
                     >
@@ -977,27 +985,21 @@ export function SalesWizard({
                             }
                           )})`}
                     </button>
-                    {walletBalance < netPrice && netPrice > 0 && (
+                    {walletBalance < fullPackagePrice && fullPackagePrice > 0 && (
                       <p className="mt-1 text-[11px] text-red-500">
-                        Bakiyeniz yetersiz.
+                        Yetersiz bakiye. Paket tutarı için bakiyeniz yetersiz.
                       </p>
                     )}
                   </div>
-                </button>
+                </div>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("card")}
-                  className={`flex flex-col gap-2 rounded-md border px-3 py-3 text-left text-xs transition ${
-                    paymentMethod === "card"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-background hover:border-primary/60"
-                  }`}
-                >
+              {paymentMethod === "credit_card" && (
+                <div className="rounded-md border border-border bg-background/60 px-3 py-3 text-xs">
                   <span className="text-[11px] font-semibold uppercase text-muted-foreground">
-                    Kart ile Öde
+                    Kart İle Öde
                   </span>
-                  <div className="grid gap-2">
+                  <div className="mt-2 grid gap-2">
                     <input
                       type="text"
                       placeholder="Kart üzerindeki isim"
@@ -1034,8 +1036,27 @@ export function SalesWizard({
                       </button>
                     </div>
                   </div>
-                </button>
-              </div>
+                </div>
+              )}
+
+              {paymentMethod === "cash" && (
+                <div className="rounded-md border border-dashed border-border bg-background/40 px-3 py-3 text-xs">
+                  <p className="mb-2 text-[11px] text-muted-foreground">
+                    Ödeme fiziksel olarak nakit veya POS üzerinden tahsil
+                    edilecektir; cüzdandan net maliyet düşümü uygulanır.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCheckout}
+                    disabled={isSubmitting || netPrice <= 0}
+                    className="inline-flex w-full items-center justify-center rounded-md border border-emerald-600 bg-emerald-600 px-3 py-2 text-sm font-medium text-emerald-50 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isSubmitting
+                      ? "İşleniyor..."
+                      : "Nakit / POS ile Poliçeyi Kes"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -1061,14 +1082,9 @@ export function SalesWizard({
             Devam Et
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={handleCheckout}
-            disabled={isSubmitting}
-            className="rounded-md border border-emerald-500 bg-emerald-500 px-5 py-2 text-sm font-medium text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isSubmitting ? "İşleniyor..." : "Poliçeyi Kes"}
-          </button>
+          <p className="max-w-xs text-right text-xs text-muted-foreground">
+            Ödemeyi tamamlamak için sağdaki ilgili butonu kullanın.
+          </p>
         )}
       </div>
     </div>

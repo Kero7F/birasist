@@ -5,6 +5,8 @@ declare module "next-auth" {
     id: string;
     role?: UserRole;
     is_active?: boolean;
+    bayiKodu?: string | null;
+    sirketAdi?: string | null;
   }
   interface Session {
     user: {
@@ -13,6 +15,8 @@ declare module "next-auth" {
       email?: string | null;
       role: UserRole;
       is_active: boolean;
+      bayiKodu: string | null;
+      sirketAdi: string | null;
     };
   }
 }
@@ -22,5 +26,7 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: UserRole;
     is_active?: boolean;
+    bayiKodu?: string | null;
+    sirketAdi?: string | null;
   }
 }

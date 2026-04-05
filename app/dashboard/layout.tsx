@@ -114,13 +114,21 @@ export default async function DashboardLayout({
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <User className="h-4 w-4" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-medium text-foreground">
                   {session.user?.name ?? "Kullanıcı"}
-                </p>
-                <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
+                </span>
+                {session.user?.sirketAdi ? (
+                  <span className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-400">
+                    {session.user.sirketAdi}
+                  </span>
+                ) : null}
+                <span className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
                   {session.user?.email ?? "-"}
-                </p>
+                </span>
+                <span className="mt-0.5 text-[10px] text-gray-500 dark:text-slate-500">
+                  Bayi No: {session.user?.bayiKodu ?? "—"}
+                </span>
               </div>
             </div>
 

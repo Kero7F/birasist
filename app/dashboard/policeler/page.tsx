@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, FileText } from "lucide-react";
+import { PolicyActionButtons } from "@/components/PolicyActionButtons";
 import { AgencyPolicyFilters } from "./AgencyPolicyFilters";
 
 function formatCurrency(value: number): string {
@@ -113,6 +113,8 @@ export default async function PoliciesPage({
             first_name: true,
             last_name: true,
             email: true,
+            bayiKodu: true,
+            sirketAdi: true,
           },
         },
       },
@@ -124,32 +126,63 @@ export default async function PoliciesPage({
   ]);
 
   const rows = sales.map((sale) => {
+    const s = sale as (typeof sale) & {
+      durationDays: number;
+      netPrice: number | null;
+      kdvAmount: number | null;
+      kdvRate: number;
+    };
     const agentName = `${sale.agent.first_name} ${sale.agent.last_name}`.trim();
     const statusLabel =
       sale.status === "SUCCESS"
         ? "Aktif"
         : sale.status === "CANCELLED"
-        ? "İptal"
-        : "Süresi Dolan";
-    const statusTone =
-      statusLabel === "Aktif"
-        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-        : statusLabel === "İptal"
-        ? "bg-red-500/10 text-red-700 dark:text-red-300"
-        : "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+          ? "İptal"
+          : "Süresi Dolan";
+    const packagePrice =
+      sale.package.price > 0 ? sale.package.price : sale.package.base_price;
+    const datesText = `Başlangıç: ${formatDate(sale.startDate)}\nSatış: ${formatDate(sale.created_at)}`;
+    const commissionPreview = sale.sale_price * 0.3;
+    const sozlesmeNo = sale.sozlesmeNo ?? sale.policyNumber;
+    const rawBayi = sale.agent.bayiKodu;
+    const bayiKodu =
+      rawBayi != null && String(rawBayi).trim() !== ""
+        ? String(rawBayi).trim()
+        : "";
 
     return {
       id: sale.id,
+      sozlesmeNo,
       contractNo: sale.policyNumber,
       agency: agentName || sale.agent.email,
+      sirketAdi: sale.agent.sirketAdi ?? null,
+      bayiKodu,
       customer: `${sale.customer_first_name} ${sale.customer_last_name}`.trim(),
       customerIdentity: sale.customer_tc,
+      plate: sale.customer_plate,
       plateAndVehicle: `${sale.customer_plate} • ${sale.car_brand_model}`.trim(),
       packageName: sale.package.name,
+      packagePrice,
       totalPrice: sale.sale_price,
-      createdAt: sale.created_at,
+      paymentLabel: "Nakit/POS",
+      discountDisplay: "0,00₺",
+      commissionDisplay: commissionPreview,
+      datesText,
+      saleDateDisplay: formatDate(sale.created_at),
+      createdAt: sale.created_at.toISOString(),
+      startDate: sale.startDate.toISOString(),
+      endDate: sale.endDate ? sale.endDate.toISOString() : null,
+      durationDays: s.durationDays,
+      netPrice: s.netPrice ?? null,
+      kdvAmount: s.kdvAmount ?? null,
+      kdvRate: s.kdvRate ?? null,
+      acikAdres: sale.acikAdres ?? null,
+      marka: sale.marka ?? null,
+      model: sale.model ?? null,
+      modelYili: sale.modelYili ?? null,
+      kullanimTarzi: sale.kullanimTarzi ?? null,
+      carBrandModel: sale.car_brand_model,
       statusLabel,
-      statusTone,
     };
   });
 
@@ -161,7 +194,7 @@ export default async function PoliciesPage({
     plateAndVehicle: row.plateAndVehicle,
     packageName: row.packageName,
     totalPrice: row.totalPrice,
-    createdAt: formatDate(row.createdAt),
+    createdAt: formatDate(new Date(row.createdAt)),
     statusLabel: row.statusLabel,
   }));
 
@@ -171,9 +204,9 @@ export default async function PoliciesPage({
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold text-foreground">Poliçelerim</h1>
+        <h1 className="text-xl font-semibold text-foreground">Satış Listesi</h1>
         <p className="text-sm text-muted-foreground">
-          Kestiğiniz tüm poliçelerin listesi.
+          Gerçekleştirdiğiniz satışların özeti.
         </p>
       </header>
 
@@ -191,19 +224,26 @@ export default async function PoliciesPage({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="whitespace-nowrap">İŞLEMLER</TableHead>
+                <TableHead className="whitespace-nowrap">ÖDEME</TableHead>
                 <TableHead className="whitespace-nowrap">SÖZLEŞME NO</TableHead>
                 <TableHead className="whitespace-nowrap">MÜŞTERİ</TableHead>
-                <TableHead className="whitespace-nowrap">
-                  PLAKA &amp; ARAÇ
-                </TableHead>
+                <TableHead className="whitespace-nowrap">PLAKA</TableHead>
                 <TableHead className="whitespace-nowrap">PAKET</TableHead>
                 <TableHead className="whitespace-nowrap text-right">
-                  FİYAT
+                  P.FİYATI
                 </TableHead>
-                <TableHead className="whitespace-nowrap">TARİH</TableHead>
-                <TableHead className="whitespace-nowrap">DURUM</TableHead>
                 <TableHead className="whitespace-nowrap text-right">
-                  İŞLEMLER
+                  S.FİYATI
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  İSKONTO
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  KOMİSYON
+                </TableHead>
+                <TableHead className="whitespace-nowrap min-w-[140px]">
+                  TARİHLER
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -212,7 +252,7 @@ export default async function PoliciesPage({
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={11}
                     className="h-24 text-center text-sm text-muted-foreground"
                   >
                     Kayıt bulunamadı.
@@ -221,6 +261,12 @@ export default async function PoliciesPage({
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/40">
+                    <TableCell className="align-middle">
+                      <PolicyActionButtons sale={row} />
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {row.paymentLabel}
+                    </TableCell>
                     <TableCell className="font-mono text-xs">
                       {row.contractNo}
                     </TableCell>
@@ -234,46 +280,27 @@ export default async function PoliciesPage({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="min-w-[260px]">
-                      {row.plateAndVehicle}
+                    <TableCell className="font-mono text-sm whitespace-nowrap">
+                      {row.plate}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{row.packageName}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(row.totalPrice)}
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatCurrency(row.packagePrice)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatCurrency(row.packagePrice)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {row.discountDisplay}
+                    </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatCurrency(row.commissionDisplay)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(row.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={row.statusTone}
-                      >
-                        {row.statusLabel}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          aria-label="PDF görüntüle"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          aria-label="Detayları görüntüle"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                      <div className="whitespace-pre-line text-xs leading-snug">
+                        {row.datesText}
                       </div>
                     </TableCell>
                   </TableRow>

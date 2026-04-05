@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { createAgent, type CreateAgentState } from "./actions";
 
@@ -8,6 +9,20 @@ export function CreateAgentForm() {
     createAgent,
     {}
   );
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [sirketAdi, setSirketAdi] = useState("");
+  const [bayiKodu, setBayiKodu] = useState("");
+
+  useEffect(() => {
+    if (state?.success) {
+      setFirstName("");
+      setLastName("");
+      setSirketAdi("");
+      setBayiKodu("");
+    }
+  }, [state?.success]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -34,6 +49,10 @@ export function CreateAgentForm() {
             name="firstName"
             type="text"
             required
+            value={firstName}
+            onChange={(e) =>
+              setFirstName(e.target.value.replace(/[0-9]/g, ""))
+            }
             className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
             placeholder="Örn. Ahmet"
           />
@@ -50,8 +69,29 @@ export function CreateAgentForm() {
             name="lastName"
             type="text"
             required
+            value={lastName}
+            onChange={(e) =>
+              setLastName(e.target.value.replace(/[0-9]/g, ""))
+            }
             className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
             placeholder="Örn. Yılmaz"
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <label
+            htmlFor="agent-sirketAdi"
+            className="block text-sm font-medium text-muted-foreground"
+          >
+            Şirket adı
+          </label>
+          <input
+            id="agent-sirketAdi"
+            name="sirketAdi"
+            type="text"
+            value={sirketAdi}
+            onChange={(e) => setSirketAdi(e.target.value)}
+            className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+            placeholder="Örn. ABC Sigorta"
           />
         </div>
         <div className="space-y-1.5">
@@ -87,6 +127,31 @@ export function CreateAgentForm() {
             autoComplete="new-password"
             className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
             placeholder="En az 6 karakter"
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+          <label
+            htmlFor="agent-bayiKodu"
+            className="block text-sm font-medium text-muted-foreground"
+          >
+            Bayi kodu (isteğe bağlı, 4 rakam)
+          </label>
+          <input
+            id="agent-bayiKodu"
+            name="bayiKodu"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={4}
+            pattern="\d{4}"
+            value={bayiKodu}
+            onChange={(e) =>
+              setBayiKodu(
+                e.target.value.replace(/[^0-9]/g, "").slice(0, 4)
+              )
+            }
+            className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-ring"
+            placeholder="Boş bırakılırsa otomatik atanır"
           />
         </div>
       </div>

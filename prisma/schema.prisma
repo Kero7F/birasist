@@ -70,9 +70,10 @@ model Street {
 model User {
   id            String   @id @default(uuid()) @db.Char(36)
   tc_no         String   @unique
-  bayiKodu      Int?     @unique
+  bayiKodu      String?  @unique @db.VarChar(4)
   first_name    String
   last_name     String
+  sirketAdi     String?
   phone         String
   email         String   @unique
   password_hash String
@@ -193,7 +194,13 @@ model Sale {
 
   // Coverage period
   startDate           DateTime @default(now())
-  endDate             DateTime
+  endDate             DateTime?
+  durationDays        Int      @default(365)
+
+  /// KDV / prim snapshot at sale time (historical accuracy)
+  kdvRate             Float    @default(20)
+  netPrice            Float?
+  kdvAmount           Float?
 
   /// Sözleşme / Poliçe numarası
   policyNumber        String   @unique @default(cuid())

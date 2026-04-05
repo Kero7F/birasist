@@ -1,0 +1,1 @@
+ALTER TABLE `User` ADD COLUMN `sirketAdi` VARCHAR(191) NULL;

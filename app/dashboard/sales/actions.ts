@@ -170,7 +170,6 @@ export async function checkoutPolicy(payload: any) {
   const packageId = payload.selectedPackage.id as string;
   const customerInfo = payload.customer ?? {};
   const vehicleInfo = payload.vehicle ?? {};
-  const startDateInput = payload.startDate as string | undefined;
   const pricingInfo = payload.pricing ?? {};
 
   const tcNo = String(customerInfo.tcNo ?? "").replace(/\D/g, "");
@@ -206,15 +205,18 @@ export async function checkoutPolicy(payload: any) {
   }
 
   await prisma.$transaction(async (tx) => {
-    const contractNo = generateContractNumber(1903);
+    const agentUser = await tx.user.findUnique({
+      where: { id: agentId },
+      select: { bayiKodu: true },
+    });
+    const bayi = agentUser?.bayiKodu?.trim();
+    if (!bayi) {
+      throw new Error(
+        "Hesabınıza atanmış bayi kodu bulunmuyor. Satış yapılamaz; lütfen yönetici ile iletişime geçin."
+      );
+    }
 
-    const parsedStart =
-      startDateInput && !Number.isNaN(Date.parse(startDateInput))
-        ? new Date(startDateInput)
-        : new Date();
-    const startDate = parsedStart;
-    const endDate = new Date(startDate);
-    endDate.setFullYear(startDate.getFullYear() + 1);
+    const contractNo = generateContractNumber(bayi);
 
     const pkg = await tx.package.findUnique({
       where: { id: packageId },
@@ -357,6 +359,24 @@ export async function checkoutPolicy(payload: any) {
     const customerFirstName = nameParts[0] ?? firstName;
     const customerLastName = nameParts.slice(1).join(" ") || lastName;
 
+    // Step 3 — Hizmet başlangıç tarihi (payload.startDate, YYYY-MM-DD)
+    const durationDays = 365;
+    const rawStart = payload.startDate as string | undefined;
+    const startDate =
+      typeof rawStart === "string" &&
+      rawStart.trim() !== "" &&
+      !Number.isNaN(Date.parse(rawStart))
+        ? new Date(rawStart)
+        : new Date();
+
+    const endDate = new Date(startDate.getTime());
+    endDate.setDate(endDate.getDate() + durationDays);
+
+    const kdvRate = 20;
+    const grossTtc = effectivePrice;
+    const netPricePersisted = grossTtc / (1 + kdvRate / 100);
+    const kdvAmountPersisted = grossTtc - netPricePersisted;
+
     await tx.sale.create({
       data: {
         agent_id: agentId,
@@ -371,6 +391,10 @@ export async function checkoutPolicy(payload: any) {
         status: "SUCCESS",
         startDate,
         endDate,
+        durationDays,
+        kdvRate,
+        netPrice: netPricePersisted,
+        kdvAmount: kdvAmountPersisted,
 
         policyNumber: contractNo,
         sozlesmeNo: contractNo,
@@ -380,10 +404,8 @@ export async function checkoutPolicy(payload: any) {
         model,
         modelYili: year,
         kullanimTarzi: usageType,
-        netPrim:
-          typeof pricingInfo.netPrice === "number" && pricingInfo.netPrice > 0
-            ? pricingInfo.netPrice
-            : effectivePrice,
+        netPrim: netPricePersisted,
+        kdv: kdvRate,
         brutPrim: effectivePrice,
         il_id: ilId != null && !Number.isNaN(ilId) ? ilId : null,
         ilce_id: ilceId != null && !Number.isNaN(ilceId) ? ilceId : null,

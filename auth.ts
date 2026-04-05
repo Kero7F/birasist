@@ -52,7 +52,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: `${user.first_name} ${user.last_name}`,
           email: user.email,
           role: user.role,
-          is_active: user.is_active
+          is_active: user.is_active,
+          bayiKodu: user.bayiKodu ?? null,
+          sirketAdi: user.sirketAdi ?? null,
         };
       }
     })
@@ -63,6 +65,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = user.role;
         token.is_active = user.is_active;
+        token.bayiKodu = user.bayiKodu ?? null;
+        token.sirketAdi = user.sirketAdi ?? null;
       }
       return token;
     },
@@ -71,6 +75,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id ?? "";
         session.user.role = token.role ?? "AGENT";
         session.user.is_active = token.is_active ?? true;
+        session.user.bayiKodu =
+          typeof token.bayiKodu === "string" ? token.bayiKodu : null;
+        session.user.sirketAdi =
+          typeof token.sirketAdi === "string" ? token.sirketAdi : null;
       }
       return session;
     }

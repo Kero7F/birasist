@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { CreateAgentForm } from "./CreateAgentForm";
+import { DeleteAgencyButton } from "./DeleteAgencyButton";
 
 function formatBalance(value: number): string {
   return new Intl.NumberFormat("tr-TR", {
@@ -62,6 +63,12 @@ export default async function AdminAgentsPage() {
                     scope="col"
                     className="px-4 py-3 font-medium text-muted-foreground"
                   >
+                    Bayi kodu
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 font-medium text-muted-foreground"
+                  >
                     E-posta
                   </th>
                   <th
@@ -76,13 +83,19 @@ export default async function AdminAgentsPage() {
                   >
                     Cüzdan bakiyesi
                   </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-right font-medium text-muted-foreground"
+                  >
+                    İşlemler
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {agents.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={6}
                       className="px-4 py-8 text-center text-muted-foreground"
                     >
                       Henüz acente bulunmamaktadır.
@@ -96,6 +109,9 @@ export default async function AdminAgentsPage() {
                     >
                       <td className="px-4 py-3 font-medium text-foreground">
                         {agent.first_name} {agent.last_name}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-foreground">
+                        {agent.bayiKodu ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-foreground">
                         {agent.email}
@@ -113,6 +129,12 @@ export default async function AdminAgentsPage() {
                       </td>
                       <td className="px-4 py-3 font-medium text-foreground">
                         {formatBalance(agent.wallet?.balance ?? 0)}
+                      </td>
+                      <td className="px-4 py-3 text-right align-middle">
+                        <DeleteAgencyButton
+                          agencyId={agent.id}
+                          agencyLabel={`${agent.first_name} ${agent.last_name}`}
+                        />
                       </td>
                     </tr>
                   ))

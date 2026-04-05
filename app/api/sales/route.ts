@@ -85,14 +85,13 @@ export async function POST(req: Request) {
     startDateInput && !Number.isNaN(Date.parse(startDateInput))
       ? new Date(startDateInput)
       : new Date();
-  const endDate = new Date(startDate);
-  endDate.setFullYear(startDate.getFullYear() + 1);
 
   const pkg = await prisma.package.findUnique({
     where: { id: packageId },
     select: {
       id: true,
       base_price: true,
+      price: true,
       commission_amount: true,
     },
   });
@@ -101,9 +100,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Seçilen paket bulunamadı." }, { status: 404 });
   }
 
-  const netPrice = num(pricing.netPrice);
+  const netPriceInput = num(pricing.netPrice);
   const salePrice =
-    netPrice != null && netPrice > 0 ? netPrice : pkg.base_price;
+    netPriceInput != null && netPriceInput > 0
+      ? netPriceInput
+      : pkg.price > 0
+        ? pkg.price
+        : pkg.base_price;
+
+  const durationDays = 365;
+  const endDate = new Date(startDate.getTime());
+  endDate.setDate(endDate.getDate() + durationDays);
+
+  const kdvRate = 20;
+  const grossTtc = salePrice;
+  const netPricePersisted = grossTtc / (1 + kdvRate / 100);
+  const kdvAmountPersisted = grossTtc - netPricePersisted;
 
   const finalCommission = num(pricing.finalCommission);
   const commissionEarned =
@@ -133,7 +145,22 @@ export async function POST(req: Request) {
   const brutPrimOut = num(body.brutPrim);
   const kdvOut = num(body.kdv);
 
-  const sozlesmeNo = generateContractNumber(1903);
+  const agentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { bayiKodu: true },
+  });
+  const bayi = agentUser?.bayiKodu?.trim();
+  if (!bayi) {
+    return NextResponse.json(
+      {
+        error:
+          "Hesabınıza atanmış bayi kodu bulunmuyor. Satış yapılamaz; lütfen yönetici ile iletişime geçin.",
+      },
+      { status: 403 }
+    );
+  }
+
+  const sozlesmeNo = generateContractNumber(bayi);
 
   const sale = await prisma.sale.create({
     data: {
@@ -149,6 +176,10 @@ export async function POST(req: Request) {
       status: "SUCCESS",
       startDate,
       endDate,
+      durationDays,
+      kdvRate,
+      netPrice: netPricePersisted,
+      kdvAmount: kdvAmountPersisted,
 
       sozlesmeNo,
 
@@ -157,9 +188,9 @@ export async function POST(req: Request) {
       model: modelOut || null,
       modelYili: modelYiliOut,
       kullanimTarzi: kullanimOut || null,
-      netPrim: netPrimOut ?? null,
-      brutPrim: brutPrimOut ?? null,
-      ...(kdvOut != null ? { kdv: kdvOut } : {}),
+      netPrim: netPrimOut ?? netPricePersisted,
+      brutPrim: brutPrimOut ?? salePrice,
+      kdv: kdvOut ?? kdvRate,
       il_id: ilId ?? null,
       ilce_id: ilceId ?? null,
       tcVkn: tcVknOut || null,

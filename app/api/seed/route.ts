@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { assignBayiKoduForNewUser } from "@/lib/bayiKodu";
 
 export async function GET() {
   try {
@@ -19,17 +20,21 @@ export async function GET() {
 
     const passwordHash = await bcrypt.hash("123456", 10);
 
-    const user = await prisma.user.create({
-      data: {
-        tc_no: "00000000000",
-        first_name: "Acente",
-        last_name: "Admin",
-        phone: "+900000000000",
-        email: "admin@acente.com",
-        password_hash: passwordHash,
-        role: "ADMIN",
-        is_active: true
-      }
+    const user = await prisma.$transaction(async (tx) => {
+      const bayiKodu = await assignBayiKoduForNewUser(tx, undefined);
+      return tx.user.create({
+        data: {
+          tc_no: "00000000000",
+          first_name: "Acente",
+          last_name: "Admin",
+          phone: "+900000000000",
+          email: "admin@acente.com",
+          password_hash: passwordHash,
+          role: "ADMIN",
+          is_active: true,
+          bayiKodu,
+        },
+      });
     });
 
     return NextResponse.json({

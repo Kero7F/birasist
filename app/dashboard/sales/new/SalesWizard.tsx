@@ -255,6 +255,8 @@ export function SalesWizard({
 
   const handleCheckout = () => {
     setSubmitError(null);
+    // Step 3 — Hizmet Başlangıç Tarihi (`type="date"` → YYYY-MM-DD); sunucuda startDate/endDate buna göre yazılır.
+    const startDateIso = serviceStartDate.trim();
     const payload = {
       paymentMethod,
       customer: {
@@ -275,7 +277,7 @@ export function SalesWizard({
         isNewVehicle
       },
       selectedPackage,
-      startDate: serviceStartDate,
+      startDate: startDateIso,
       pricing: {
         selectedPrice,
         discount,

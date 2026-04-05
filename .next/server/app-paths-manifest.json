@@ -1,9 +1,8 @@
 {
   "/login/page": "app/login/page.js",
-  "/api/locations/cities/route": "app/api/locations/cities/route.js",
-  "/api/locations/districts/route": "app/api/locations/districts/route.js",
+  "/dashboard/sales/new/page": "app/dashboard/sales/new/page.js",
+  "/dashboard/vehicles/page": "app/dashboard/vehicles/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/customers/page": "app/dashboard/customers/page.js",
   "/dashboard/policeler/page": "app/dashboard/policeler/page.js",
-  "/dashboard/sales/new/page": "app/dashboard/sales/new/page.js"
+  "/dashboard/admin/agents/page": "app/dashboard/admin/agents/page.js"
 }
